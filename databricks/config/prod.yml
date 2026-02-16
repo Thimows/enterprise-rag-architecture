@@ -4,10 +4,5 @@ targets:
     resources:
       jobs:
         document_ingestion_job:
-          job_clusters:
-            - job_cluster_key: ingestion_cluster
-              new_cluster:
-                num_workers: 4
-                node_type_id: Standard_DS4_v2
           schedule:
             pause_status: UNPAUSED

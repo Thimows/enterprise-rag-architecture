@@ -75,7 +75,7 @@ Documents (PDF/Word/TXT)
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Vercel Streamdown |
 | Backend | FastAPI, Python 3.9+, Pydantic, Sentence Transformers |
 | AI Services | Azure AI Foundry (Kimi K2.5, text-embedding-3-large), Azure AI Search, Azure Document Intelligence |
-| Ingestion | Databricks Jobs via Asset Bundles, semantic chunking |
+| Ingestion | Databricks Jobs (serverless compute) via Asset Bundles, semantic chunking |
 | Infrastructure | Terraform, Azure Storage Account |
 | Monorepo | Turborepo, npm workspaces, shared ESLint and TypeScript configs |
 

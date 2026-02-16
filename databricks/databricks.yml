@@ -15,85 +15,65 @@ resources:
         quartz_cron_expression: "0 0 2 * * ?"
         timezone_id: UTC
         pause_status: PAUSED
-      job_clusters:
-        - job_cluster_key: ingestion_cluster
-          new_cluster:
-            spark_version: "13.3.x-scala2.12"
-            node_type_id: Standard_DS3_v2
-            num_workers: 2
-            spark_conf:
-              spark.databricks.delta.preview.enabled: "true"
-            custom_tags:
-              project: rag-ingestion
-              environment: ${bundle.target}
+      environments:
+        - environment_key: ingestion_env
+          spec:
+            environment_version: "2"
+            dependencies:
+              - azure-ai-formrecognizer>=3.3.0
+              - azure-storage-blob>=12.19.0
+              - tiktoken>=0.7.0
+              - azure-ai-inference>=1.0.0b6
+              - azure-search-documents>=11.4.0
       tasks:
         - task_key: parse_documents
-          job_cluster_key: ingestion_cluster
+          environment_key: ingestion_env
           notebook_task:
             notebook_path: ./notebooks/01_document_parsing.py
             source: WORKSPACE
-          libraries:
-            - pypi:
-                package: azure-ai-formrecognizer>=3.3.0
-            - pypi:
-                package: azure-storage-blob>=12.19.0
           timeout_seconds: 3600
 
         - task_key: chunk_documents
           depends_on:
             - task_key: parse_documents
-          job_cluster_key: ingestion_cluster
+          environment_key: ingestion_env
           notebook_task:
             notebook_path: ./notebooks/02_chunking.py
             source: WORKSPACE
-          libraries:
-            - pypi:
-                package: tiktoken>=0.7.0
           timeout_seconds: 1800
 
         - task_key: generate_embeddings
           depends_on:
             - task_key: chunk_documents
-          job_cluster_key: ingestion_cluster
+          environment_key: ingestion_env
           notebook_task:
             notebook_path: ./notebooks/03_embedding_generation.py
             source: WORKSPACE
-          libraries:
-            - pypi:
-                package: azure-ai-inference>=1.0.0b6
           timeout_seconds: 7200
 
         - task_key: index_documents
           depends_on:
             - task_key: generate_embeddings
-          job_cluster_key: ingestion_cluster
+          environment_key: ingestion_env
           notebook_task:
             notebook_path: ./notebooks/04_indexing.py
             source: WORKSPACE
-          libraries:
-            - pypi:
-                package: azure-search-documents>=11.4.0
           timeout_seconds: 3600
 
     create_search_index_job:
       name: "[${bundle.target}] Create/Update Search Index"
-      job_clusters:
-        - job_cluster_key: utility_cluster
-          new_cluster:
-            spark_version: "13.3.x-scala2.12"
-            node_type_id: Standard_DS3_v2
-            num_workers: 0
-            spark_conf:
-              spark.master: "local[*]"
+      environments:
+        - environment_key: utility_env
+          spec:
+            environment_version: "2"
+            dependencies:
+              - azure-search-documents>=11.4.0
       tasks:
         - task_key: create_index
-          job_cluster_key: utility_cluster
+          environment_key: utility_env
           notebook_task:
             notebook_path: ./notebooks/00_create_search_index.py
             source: WORKSPACE
-          libraries:
-            - pypi:
-                package: azure-search-documents>=11.4.0
           timeout_seconds: 300
 
 targets:
