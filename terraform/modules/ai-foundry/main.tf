@@ -27,7 +27,7 @@ resource "azurerm_cognitive_deployment" "chat" {
   cognitive_account_id = azurerm_cognitive_account.ai_foundry.id
 
   model {
-    format  = "Moonshot AI"
+    format  = var.chat_model_format
     name    = var.chat_model_name
     version = var.chat_model_version
   }

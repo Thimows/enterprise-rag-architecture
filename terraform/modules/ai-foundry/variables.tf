@@ -16,6 +16,12 @@ variable "chat_deployment_name" {
   default     = "Kimi-K2.5"
 }
 
+variable "chat_model_format" {
+  description = "Model provider format (e.g. 'Moonshot AI', 'OpenAI', 'DeepSeek', 'Mistral AI')"
+  type        = string
+  default     = "Moonshot AI"
+}
+
 variable "chat_model_name" {
   description = "Chat model to deploy"
   type        = string

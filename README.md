@@ -79,6 +79,30 @@ Documents (PDF/Word/TXT)
 | Infrastructure | Terraform, Azure Storage Account |
 | Monorepo | Turborepo, npm workspaces, shared ESLint and TypeScript configs |
 
+### Model Configuration
+
+This project uses [Direct from Azure](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure) models — third-party models hosted and managed by Microsoft on Azure infrastructure. Unlike marketplace models (which require separate vendor agreements and portal-based consent flows), Direct from Azure models are purchased through Azure, deployed via Terraform and covered by a single Microsoft license.
+
+The default chat model is **Kimi K2.5** (Moonshot AI). You can swap it for any other Direct from Azure chat model by changing `chat_model_format` and `chat_model_name` in your `terraform.tfvars`:
+
+```hcl
+# Third-party models (available on all subscriptions)
+chat_model_format = "Moonshot AI"      # default
+chat_model_name   = "Kimi-K2.5"       # default
+
+chat_model_format = "DeepSeek"
+chat_model_name   = "DeepSeek-V3.2"
+
+chat_model_format = "Mistral AI"
+chat_model_name   = "Mistral-Large-3"
+
+# OpenAI models (may require enterprise subscription)
+chat_model_format = "OpenAI"
+chat_model_name   = "gpt-5.3"
+```
+
+Embeddings use **text-embedding-3-large** (OpenAI via Azure), which is also Direct from Azure.
+
 ## Project Structure
 
 ```
