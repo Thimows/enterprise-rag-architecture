@@ -6,17 +6,17 @@ variable "resource_group_name" {
 variable "location" {
   description = "Azure region for all resources"
   type        = string
-  default     = "eastus2"
+  default     = "swedencentral"
 }
 
-variable "openai_model_name" {
-  description = "Name of the OpenAI chat model deployment"
+variable "chat_model_name" {
+  description = "Name of the chat model to deploy"
   type        = string
-  default     = "gpt-5.3"
+  default     = "claude-sonnet-4-5"
 }
 
-variable "openai_embedding_model_name" {
-  description = "Name of the OpenAI embedding model deployment"
+variable "embedding_model_name" {
+  description = "Name of the embedding model to deploy"
   type        = string
   default     = "text-embedding-3-large"
 }
@@ -24,7 +24,7 @@ variable "openai_embedding_model_name" {
 variable "search_service_sku" {
   description = "SKU tier for Azure AI Search"
   type        = string
-  default     = "standard"
+  default     = "free"
 }
 
 variable "storage_account_name" {

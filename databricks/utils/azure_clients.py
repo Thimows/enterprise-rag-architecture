@@ -3,9 +3,9 @@ Azure SDK client factories for Databricks notebooks.
 
 All credentials are read from Databricks secrets scope "rag-ingestion".
 Expected secrets:
-  - azure-openai-endpoint
-  - azure-openai-key
-  - azure-openai-embedding-deployment
+  - azure-ai-resource-name
+  - azure-ai-key
+  - azure-ai-embedding-deployment
   - azure-search-endpoint
   - azure-search-key
   - azure-search-index-name
@@ -14,7 +14,7 @@ Expected secrets:
   - document-intelligence-key
 """
 
-from openai import AzureOpenAI
+from azure.ai.inference import EmbeddingsClient
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import DocumentAnalysisClient
 from azure.search.documents import SearchClient
@@ -47,12 +47,14 @@ def get_document_analysis_client() -> DocumentAnalysisClient:
     )
 
 
-def get_openai_client() -> AzureOpenAI:
-    """Create AzureOpenAI client using Databricks secrets."""
-    return AzureOpenAI(
-        azure_endpoint=get_secret("azure-openai-endpoint"),
-        api_key=get_secret("azure-openai-key"),
-        api_version="2024-12-01-preview",
+def get_embeddings_client() -> EmbeddingsClient:
+    """Create EmbeddingsClient for text-embedding-3-large using Databricks secrets."""
+    resource_name = get_secret("azure-ai-resource-name")
+    endpoint = f"https://{resource_name}.services.ai.azure.com/models"
+    return EmbeddingsClient(
+        endpoint=endpoint,
+        credential=AzureKeyCredential(get_secret("azure-ai-key")),
+        model=get_secret("azure-ai-embedding-deployment"),
     )
 
 

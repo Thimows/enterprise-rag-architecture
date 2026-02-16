@@ -1,6 +1,7 @@
 from functools import lru_cache
 
-from openai import AzureOpenAI
+from anthropic import AnthropicFoundry
+from azure.ai.inference import EmbeddingsClient
 from azure.search.documents import SearchClient
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.formrecognizer import DocumentAnalysisClient
@@ -10,11 +11,19 @@ from config.settings import settings
 
 
 @lru_cache
-def get_openai_client() -> AzureOpenAI:
-    return AzureOpenAI(
-        azure_endpoint=settings.AZURE_OPENAI_ENDPOINT,
-        api_key=settings.AZURE_OPENAI_API_KEY,
-        api_version="2024-12-01-preview",
+def get_chat_client() -> AnthropicFoundry:
+    return AnthropicFoundry(
+        api_key=settings.AZURE_AI_KEY,
+        resource=settings.AZURE_AI_RESOURCE_NAME,
+    )
+
+
+@lru_cache
+def get_embeddings_client() -> EmbeddingsClient:
+    return EmbeddingsClient(
+        endpoint=f"https://{settings.AZURE_AI_RESOURCE_NAME}.services.ai.azure.com/models",
+        credential=AzureKeyCredential(settings.AZURE_AI_KEY),
+        model=settings.AZURE_AI_EMBEDDING_DEPLOYMENT,
     )
 
 

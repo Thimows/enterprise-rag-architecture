@@ -3,14 +3,18 @@ resource "azurerm_resource_group" "main" {
   location = var.location
 }
 
-module "azure_openai" {
-  source = "./modules/azure-openai"
+resource "random_id" "suffix" {
+  byte_length = 4
+}
 
-  resource_group_name = azurerm_resource_group.main.name
-  location            = azurerm_resource_group.main.location
-  project_prefix      = var.project_prefix
-  model_name          = var.openai_model_name
-  embedding_model_name = var.openai_embedding_model_name
+module "ai_foundry" {
+  source = "./modules/ai-foundry"
+
+  resource_group_name  = azurerm_resource_group.main.name
+  location             = azurerm_resource_group.main.location
+  project_prefix       = var.project_prefix
+  chat_model_name      = var.chat_model_name
+  embedding_model_name = var.embedding_model_name
 }
 
 module "azure_search" {
@@ -18,7 +22,7 @@ module "azure_search" {
 
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
-  project_prefix      = var.project_prefix
+  project_prefix      = "${var.project_prefix}-${random_id.suffix.hex}"
   sku                 = var.search_service_sku
 }
 

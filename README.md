@@ -1,6 +1,6 @@
 # Enterprise RAG Architecture
 
-A production-grade Retrieval-Augmented Generation system built for enterprise environments. Uses Azure OpenAI for inference, Azure AI Search for hybrid retrieval and Databricks for automated document ingestion and chunking workflows.
+A production-grade Retrieval-Augmented Generation system built for enterprise environments. Uses Azure AI Foundry (Claude Sonnet 4.5 for inference, text-embedding-3-large for embeddings), Azure AI Search for hybrid retrieval and Databricks for automated document ingestion and chunking workflows.
 
 All data stays within your Azure tenant. No external API calls, no third-party logging, no data leaving your private environment.
 
@@ -26,8 +26,8 @@ Documents (PDF/Word/TXT)
   (parse, chunk, embed)    (vector + keyword + semantic index)
                                     |
                                     v
-  Next.js  <──────>  FastAPI  <──────>  Azure OpenAI
-  (chat UI,          (query rewrite,    (GPT-5.3,
+  Next.js  <──────>  FastAPI  <──────>  Azure AI Foundry
+  (chat UI,          (query rewrite,    (Claude Sonnet 4.5,
    streaming,         reranking,         text-embedding-3-large)
    citations)         generation)
 ```
@@ -53,7 +53,7 @@ Documents (PDF/Word/TXT)
 - Citations parsed and rendered as they stream in
 
 **Evaluation**
-- Custom LLM-as-judge pipeline using Azure OpenAI
+- Custom LLM-as-judge pipeline using Claude
 - Three metrics: faithfulness, relevance, completeness
 - Automated evaluation against a curated test set
 
@@ -74,7 +74,7 @@ Documents (PDF/Word/TXT)
 |-------|-----------|
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Vercel Streamdown |
 | Backend | FastAPI, Python 3.9+, Pydantic, Sentence Transformers |
-| AI Services | Azure OpenAI (GPT-5.3, text-embedding-3-large), Azure AI Search, Azure Document Intelligence |
+| AI Services | Azure AI Foundry (Claude Sonnet 4.5, text-embedding-3-large), Azure AI Search, Azure Document Intelligence |
 | Ingestion | Databricks Jobs via Asset Bundles, semantic chunking |
 | Infrastructure | Terraform, Azure Storage Account |
 | Monorepo | Turborepo, npm workspaces, shared ESLint and TypeScript configs |
@@ -98,12 +98,27 @@ enterprise-rag-architecture/
 
 ### Prerequisites
 
-- Node.js 18+
-- Python 3.9+
-- [UV](https://github.com/astral-sh/uv) (Python package manager)
-- Terraform 1.7+
-- Azure CLI
-- Databricks CLI
+Install the required tools for your platform:
+
+| Tool | macOS (`brew`) | Windows (`winget`) |
+|------|----------------|-------------------|
+| Node.js | `brew install node` | `winget install OpenJS.NodeJS` |
+| Python | `brew install python` | `winget install Python.Python.3.12` |
+| UV | `brew install uv` | `winget install astral-sh.uv` |
+| Terraform | `brew install terraform` | `winget install Hashicorp.Terraform` |
+| Azure CLI | `brew install azure-cli` | `winget install Microsoft.AzureCLI` |
+| Databricks CLI | `brew tap databricks/tap && brew install databricks` | `winget install Databricks.DatabricksCLI` |
+
+After installing, log in and configure:
+
+```bash
+az login
+databricks configure
+# When prompted for the host, enter your Databricks workspace URL:
+# https://<your-workspace>.cloud.databricks.com
+# When prompted for a personal access token, generate one in Databricks:
+# User icon → Settings → Developer → Access tokens → Generate new token
+```
 
 ### Setup
 
@@ -113,23 +128,14 @@ git clone https://github.com/Thimows/enterprise-rag-architecture.git
 cd enterprise-rag-architecture
 npm install
 
-# 2. Provision Azure resources
-cd terraform
-cp terraform.tfvars.example terraform.tfvars
-terraform init && terraform apply
+# 2. Provision Azure, generate .env files, configure Databricks secrets, deploy bundle
+./scripts/setup.sh
 
-# 3. Configure environment
-cd ../apps/api && cp .env.example .env
-cd ../web && cp .env.example .env.local
-
-# 4. Deploy ingestion pipeline
-cd ../../databricks
-databricks bundle deploy --target dev
-
-# 5. Start development (runs both API and web server)
-cd ..
+# 3. Start development (runs both API and web server)
 npm run dev
 ```
+
+The setup script handles everything: Terraform provisioning, `.env` file generation from Terraform outputs, Databricks secrets configuration, and bundle deployment. It's idempotent — safe to re-run anytime.
 
 The FastAPI server starts at `http://localhost:8000` and the Next.js app at `http://localhost:3000`.
 

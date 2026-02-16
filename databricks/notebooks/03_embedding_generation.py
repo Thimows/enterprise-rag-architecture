@@ -4,7 +4,7 @@
 # MAGIC %md
 # MAGIC # 03 — Embedding Generation
 # MAGIC
-# MAGIC Reads chunks from Delta table, generates embeddings via Azure OpenAI in batches,
+# MAGIC Reads chunks from Delta table, generates embeddings via Azure AI Foundry in batches,
 # MAGIC and writes the embeddings back alongside the chunk data.
 
 # COMMAND ----------
@@ -23,7 +23,7 @@ import json
 import time
 
 sys.path.append("../")
-from utils.azure_clients import get_openai_client, get_secret
+from utils.azure_clients import get_embeddings_client
 from utils.quality_checks import validate_embeddings
 
 # COMMAND ----------
@@ -36,8 +36,7 @@ expected_dims = int(dbutils.widgets.get("embedding_dimensions"))
 
 # COMMAND ----------
 
-client = get_openai_client()
-embedding_deployment = get_secret("azure-openai-embedding-deployment")
+client = get_embeddings_client()
 
 # COMMAND ----------
 
@@ -50,8 +49,7 @@ print(f"Generating embeddings for {len(chunks)} chunks")
 def generate_embeddings_batch(texts: list[str], retries: int = 0) -> list[list[float]]:
     """Generate embeddings for a batch with retry logic and rate limiting."""
     try:
-        response = client.embeddings.create(
-            model=embedding_deployment,
+        response = client.embed(
             input=texts,
         )
         embeddings = [item.embedding for item in response.data]

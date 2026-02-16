@@ -1,9 +1,9 @@
 resource_group_name  = "rg-enterprise-rag"
-location             = "eastus2"
+location             = "swedencentral"
 storage_account_name = "stenterpriserag"
 project_prefix       = "rag"
 
-# OpenAI model defaults (override if needed)
-# openai_model_name           = "gpt-5.3"
-# openai_embedding_model_name = "text-embedding-3-large"
-# search_service_sku          = "standard"
+# AI model defaults (override if needed)
+# chat_model_name      = "claude-sonnet-4-5"
+# embedding_model_name = "text-embedding-3-large"
+# search_service_sku   = "free"  (default)

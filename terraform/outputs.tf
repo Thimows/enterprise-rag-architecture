@@ -2,21 +2,25 @@ output "resource_group_name" {
   value = azurerm_resource_group.main.name
 }
 
-output "azure_openai_endpoint" {
-  value = module.azure_openai.endpoint
+output "azure_ai_endpoint" {
+  value = module.ai_foundry.endpoint
 }
 
-output "azure_openai_key" {
-  value     = module.azure_openai.primary_key
+output "azure_ai_resource_name" {
+  value = module.ai_foundry.resource_name
+}
+
+output "azure_ai_key" {
+  value     = module.ai_foundry.primary_key
   sensitive = true
 }
 
-output "azure_openai_deployment_name" {
-  value = module.azure_openai.chat_deployment_name
+output "azure_ai_chat_deployment" {
+  value = module.ai_foundry.chat_deployment_name
 }
 
-output "azure_openai_embedding_deployment_name" {
-  value = module.azure_openai.embedding_deployment_name
+output "azure_ai_embedding_deployment" {
+  value = module.ai_foundry.embedding_deployment_name
 }
 
 output "azure_search_endpoint" {

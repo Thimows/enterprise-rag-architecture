@@ -4,10 +4,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
 
-    AZURE_OPENAI_ENDPOINT: str = ""
-    AZURE_OPENAI_API_KEY: str = ""
-    AZURE_OPENAI_DEPLOYMENT_NAME: str = ""
-    AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME: str = ""
+    AZURE_AI_ENDPOINT: str = ""
+    AZURE_AI_RESOURCE_NAME: str = ""
+    AZURE_AI_KEY: str = ""
+    AZURE_AI_CHAT_DEPLOYMENT: str = ""
+    AZURE_AI_EMBEDDING_DEPLOYMENT: str = ""
 
     AZURE_SEARCH_ENDPOINT: str = ""
     AZURE_SEARCH_API_KEY: str = ""

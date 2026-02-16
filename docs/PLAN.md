@@ -1,6 +1,6 @@
 # Enterprise RAG Architecture
 
-> A production-grade, enterprise-ready Retrieval-Augmented Generation (RAG) system showcasing best practices for building transparent, citation-based AI applications with Azure OpenAI, Azure AI Search, and Databricks.
+> A production-grade, enterprise-ready Retrieval-Augmented Generation (RAG) system showcasing best practices for building transparent, citation-based AI applications with Azure AI Foundry (Claude Sonnet 4.5), Azure AI Search, and Databricks.
 
 ## Purpose
 
@@ -49,7 +49,7 @@ Unlike framework-heavy implementations, this showcase uses **direct SDK integrat
 │                             │                                           │
 │                             ▼                                           │
 │                      Azure Document Intelligence                        │
-│                      Azure OpenAI (Embeddings)                          │
+│                      Azure AI Foundry (Embeddings)                      │
 └─────────────────────────────────────────────────────────────────────────┘
                                                     │
                                                     ▼
@@ -66,7 +66,7 @@ Unlike framework-heavy implementations, this showcase uses **direct SDK integrat
 │  │  • Sources   │    │  • Generate  │    │    Keyword   │              │
 │  └──────────────┘    │              │    └──────────────┘              │
 │                      │ Cross-Encoder│                                   │
-│                      │ Azure OpenAI │                                   │
+│                      │Azure AI Fndry│                                   │
 │                      └──────────────┘                                   │
 │                             │                                           │
 │                             ▼                                           │
@@ -78,7 +78,7 @@ Unlike framework-heavy implementations, this showcase uses **direct SDK integrat
 │                        EVALUATION PIPELINE                              │
 │                                                                         │
 │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐              │
-│  │   Test Set   │───▶│   FastAPI    │───▶│ Azure OpenAI │              │
+│  │   Test Set   │───▶│   FastAPI    │───▶│Azure AI Fndry│              │
 │  │              │    │   Evaluator  │    │(LLM-as-Judge)│              │
 │  │  • Questions │    │              │    │              │              │
 │  │  • Expected  │    │ • Faithfuln. │    │  • Grading   │              │
@@ -96,7 +96,7 @@ Unlike framework-heavy implementations, this showcase uses **direct SDK integrat
 | **Azure AI Search** | Vector + keyword + semantic hybrid search, filtering, index management |
 | **FastAPI Backend** | Query understanding, retrieval orchestration, cross-encoder reranking, answer generation with citations, streaming responses |
 | **Next.js Frontend** | Chat interface, markdown streaming (Streamdown), citation bubbles, source highlighting, document viewer |
-| **Azure OpenAI** | Text embeddings (`text-embedding-3-large`), chat completions (GPT-5.3), evaluation (LLM-as-judge) |
+| **Azure AI Foundry** | Chat completions (Claude Sonnet 4.5), text embeddings (`text-embedding-3-large`), evaluation (LLM-as-judge) |
 | **Terraform** | Infrastructure provisioning, resource management, reproducible deployments |
 
 ---
@@ -120,7 +120,8 @@ Unlike framework-heavy implementations, this showcase uses **direct SDK integrat
 | **FastAPI** | 0.128+ | High-performance async Python framework with OpenAPI docs |
 | **Python** | 3.9+ | Azure SDK compatibility, async/await |
 | **UV** | Latest | Fast Python package manager |
-| **Azure OpenAI SDK** | Latest | Direct access for embeddings and chat completions |
+| **Anthropic SDK** | Latest | Claude Sonnet 4.5 via Azure AI Foundry |
+| **Azure AI Inference SDK** | Latest | Embeddings via Azure AI Foundry |
 | **Azure AI Search SDK** | Latest | Direct SDK for hybrid search |
 | **Sentence Transformers** | Latest | Cross-encoder models for reranking |
 | **Pydantic** | 2.x | Data validation, settings management |
@@ -138,7 +139,7 @@ Unlike framework-heavy implementations, this showcase uses **direct SDK integrat
 | Technology | Version | Justification |
 |------------|---------|---------------|
 | **Terraform** | 1.7+ | Infrastructure-as-code for Azure resources |
-| **Azure OpenAI** | GPT-5.3, text-embedding-3-large | Latest models for generation and embeddings |
+| **Azure AI Foundry** | Claude Sonnet 4.5, text-embedding-3-large | Chat and embedding models via AI Foundry marketplace |
 | **Azure AI Search** | Standard tier | Vector + keyword + semantic ranking |
 | **Azure Document Intelligence** | Standard | Document parsing with layout analysis |
 | **Azure Storage Account** | Standard | Document storage |
@@ -166,7 +167,7 @@ The ingestion pipeline runs as Databricks Jobs, defined via Databricks Asset Bun
 
 1. **Document Parsing** (`01_document_parsing.py`) — Parse PDFs/Word docs via Azure Document Intelligence, extract text, layout, and metadata
 2. **Chunking** (`02_chunking.py`) — Apply chunking strategies with overlap and metadata preservation
-3. **Embedding Generation** (`03_embedding_generation.py`) — Batch embed chunks using Azure OpenAI `text-embedding-3-large`
+3. **Embedding Generation** (`03_embedding_generation.py`) — Batch embed chunks using Azure AI Foundry `text-embedding-3-large`
 4. **Indexing** (`04_indexing.py`) — Upload chunks + embeddings to Azure AI Search index
 
 **Chunking Strategies**:
@@ -359,7 +360,7 @@ Key components:
         │
         ▼
  2. EMBEDDING GENERATION
-    Azure OpenAI text-embedding-3-large → 3072-dim vector
+    Azure AI Foundry text-embedding-3-large → 3072-dim vector
         │
         ▼
  3. HYBRID SEARCH (Azure AI Search)
@@ -377,7 +378,7 @@ Key components:
     Format chunks with [1], [2], ... identifiers + metadata
         │
         ▼
- 6. ANSWER GENERATION (Azure OpenAI GPT-5.3)
+ 6. ANSWER GENERATION (Azure AI Foundry — Claude Sonnet 4.5)
     Stream response with inline citations [1][2]
         │
         ▼
@@ -403,7 +404,7 @@ Key components:
     Semantic chunking with overlap, metadata per chunk
         │
         ▼
- 3. EMBEDDING GENERATION (Azure OpenAI)
+ 3. EMBEDDING GENERATION (Azure AI Foundry)
     Batch process (100 at a time), validate dimensions
         │
         ▼
@@ -425,7 +426,7 @@ Key components:
 
 | Task | Status | Details |
 |------|--------|---------|
-| Terraform IaC | ✅ Done | Resource group, Azure OpenAI (GPT-5.3 + embeddings), Azure AI Search, Document Intelligence, Storage Account — modular setup in `terraform/` with 4 modules |
+| Terraform IaC | ✅ Done | Resource group, Azure AI Foundry (Claude Sonnet 4.5 + embeddings), Azure AI Search, Document Intelligence, Storage Account — modular setup in `terraform/` with 4 modules |
 | Monorepo setup | ✅ Done | `apps/api/package.json` added with `dev` script so `npm run dev` starts both Next.js and FastAPI concurrently via Turborepo |
 | FastAPI scaffold | ✅ Done | App entry with CORS, Pydantic settings, Azure SDK client factories, routers (health, chat, documents) under `/api/v1`, `.env.example` |
 | Next.js scaffold | ✅ Done | Tailwind CSS v4 with `@tailwindcss/postcss`, chat layout skeleton with header/message area/input bar, dark mode support, `.env.example` |
@@ -448,7 +449,7 @@ Key components:
 
 > **Note**: This step requires an Azure subscription and Databricks workspace. Skip until you're ready to test end-to-end.
 
-**Deliverables**: Live Azure resources (OpenAI, AI Search, Storage, Document Intelligence), Databricks jobs deployed and ready to run
+**Deliverables**: Live Azure resources (AI Foundry, AI Search, Storage, Document Intelligence), Databricks jobs deployed and ready to run
 
 ---
 
@@ -461,7 +462,7 @@ Key components:
 | Databricks utilities | ✅ Done | Client factories using `dbutils.secrets`, chunking strategies (semantic, structure-aware, sliding window with tiktoken), quality validation checks in `databricks/utils/` |
 | Document parsing notebook | ✅ Done | `01_document_parsing.py` — Azure Document Intelligence `prebuilt-layout`, PDF/DOCX/TXT support, Delta table `rag_ingestion.parsed_documents` |
 | Chunking notebook | ✅ Done | `02_chunking.py` — Widget-selectable strategy, deterministic chunk IDs, quality validation, Delta table `rag_ingestion.chunks` |
-| Embedding generation notebook | ✅ Done | `03_embedding_generation.py` — Batch of 100, exponential backoff retry, 3072-dim validation, Delta table `rag_ingestion.chunks_with_embeddings` |
+| Embedding generation notebook | ✅ Done | `03_embedding_generation.py` — Azure AI Foundry EmbeddingsClient, batch of 100, exponential backoff retry, 3072-dim validation, Delta table `rag_ingestion.chunks_with_embeddings` |
 | Azure AI Search index setup | ✅ Done | `00_create_search_index.py` — 9 fields, HNSW vector search (cosine, 3072-dim), semantic ranking config, idempotent `create_or_update_index` |
 | Search indexing notebook | ✅ Done | `04_indexing.py` — Batch upsert via `merge_or_upload_documents`, per-document error tracking |
 | Databricks Asset Bundles | ✅ Done | `databricks.yml` with 2 jobs, 4 sequential tasks with dependencies, 3 targets (dev/staging/prod) with cluster overrides |
@@ -478,10 +479,10 @@ Key components:
 
 | Task | Details |
 |------|---------|
-| Query rewriting | Conversational rewriting with Azure OpenAI, follow-up handling |
+| Query rewriting | Conversational rewriting with Claude Sonnet 4.5, follow-up handling |
 | Hybrid search | Azure AI Search SDK, vector + keyword + semantic, RRF fusion, filtering |
 | Reranking (optional) | Sentence Transformers cross-encoder (`ms-marco-MiniLM-L-12-v2`) — toggleable via config, benchmarked against Azure semantic ranking |
-| Answer generation | Azure OpenAI streaming, system prompt with citation instructions, SSE |
+| Answer generation | Claude Sonnet 4.5 streaming, system prompt with citation instructions, SSE |
 | Citation extraction | Parse `[1]` `[2]` from output, map to source chunks |
 | API endpoints | `/chat/stream`, `/chat/query`, `/documents`, `/documents/{id}/chunks` |
 
@@ -514,7 +515,7 @@ Key components:
 
 | Task | Details |
 |------|---------|
-| LLM-as-judge evaluation | 3 metrics (faithfulness, relevance, completeness), grading prompts, test set (10-20 questions) |
+| LLM-as-judge evaluation | 3 metrics (faithfulness, relevance, completeness), grading prompts via Claude, test set (10-20 questions) |
 | Reranking benchmark | Compare Azure semantic ranking vs cross-encoder reranking on eval metrics — measure faithfulness/relevance delta to justify the added complexity |
 | Query understanding | Intent classification, answerability detection |
 | Answer quality | Confidence scoring, table generation when appropriate |
@@ -555,7 +556,7 @@ enterprise-rag-architecture/
 │   │   ├── services/
 │   │   │   ├── retrieval_service.py  # Azure AI Search integration
 │   │   │   ├── reranking_service.py  # Cross-encoder reranking
-│   │   │   ├── generation_service.py # Azure OpenAI chat completions
+│   │   │   ├── generation_service.py # Claude Sonnet 4.5 chat completions
 │   │   │   ├── query_service.py      # Query rewriting
 │   │   │   └── evaluation_service.py # LLM-as-judge evaluation
 │   │   ├── models/
@@ -627,7 +628,7 @@ enterprise-rag-architecture/
 │   ├── outputs.tf
 │   ├── provider.tf
 │   ├── modules/
-│   │   ├── azure-openai/
+│   │   ├── ai-foundry/
 │   │   ├── azure-search/
 │   │   ├── storage/
 │   │   └── document-intelligence/
@@ -757,7 +758,7 @@ Designed for secure enterprise environments. All documents and queries remain wi
 
 ### Custom LLM-as-Judge
 
-A custom evaluation pipeline using Azure OpenAI as a judge, providing full control over metrics, prompts, and scoring.
+A custom evaluation pipeline using Claude Sonnet 4.5 as a judge, providing full control over metrics, prompts, and scoring.
 
 ### Metrics
 
@@ -767,7 +768,7 @@ A custom evaluation pipeline using Azure OpenAI as a judge, providing full contr
 | **Relevance** | Does the answer address the question? |
 | **Completeness** | Does the answer cover all aspects of the question? |
 
-Each metric is scored 0-10 by GPT-5.3 with a grading prompt and reasoning.
+Each metric is scored 0-10 by Claude Sonnet 4.5 with a grading prompt and reasoning.
 
 ### Test Set
 

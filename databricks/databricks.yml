@@ -60,7 +60,7 @@ resources:
             source: WORKSPACE
           libraries:
             - pypi:
-                package: openai>=1.0.0
+                package: azure-ai-inference>=1.0.0b6
           timeout_seconds: 7200
 
         - task_key: index_documents
