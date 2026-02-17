@@ -1,9 +1,12 @@
 {
+  "venvPath": "apps/api",
+  "venv": ".venv",
   "executionEnvironments": [
     {
       "root": "databricks",
       "reportUndefinedVariable": "none",
-      "reportMissingModuleSource": false
+      "reportMissingModuleSource": false,
+      "reportMissingImports": false
     },
     {
       "root": "apps/api"

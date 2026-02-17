@@ -6,6 +6,8 @@ from pydantic import BaseModel
 class DocumentUploadResponse(BaseModel):
     document_id: str
     document_name: str
+    organization_id: str
+    folder_id: str
     status: str
     message: str
 
@@ -13,6 +15,8 @@ class DocumentUploadResponse(BaseModel):
 class DocumentListItem(BaseModel):
     document_id: str
     document_name: str
+    organization_id: str
+    folder_id: str
     size_bytes: int
     uploaded_at: str
 

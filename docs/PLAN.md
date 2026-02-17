@@ -22,6 +22,7 @@ Unlike framework-heavy implementations, this showcase uses **direct SDK integrat
 - [Tech Stack](#tech-stack)
 - [System Components](#system-components)
 - [Data Flow](#data-flow)
+- [Database Schema](#database-schema)
 - [Implementation Roadmap](#implementation-roadmap)
 - [Folder Structure](#folder-structure)
 - [API Design](#api-design)
@@ -178,7 +179,8 @@ FastAPI saves to Blob Storage
         |
         v
 Databricks job triggered with params:
-  { "document_names": "report.pdf,contract.docx" }
+  { "document_names": "report.pdf,contract.docx",
+    "organization_id": "org-abc", "folder_id": "folder-1" }
         |
         v
 01_parsing:  parses only those 2 blobs, appends to parsed_documents
@@ -305,6 +307,8 @@ targets:
     { "name": "document_url", "type": "Edm.String", "filterable": false },
     { "name": "page_number", "type": "Edm.Int32", "filterable": true, "sortable": true },
     { "name": "chunk_index", "type": "Edm.Int32", "filterable": true },
+    { "name": "organization_id", "type": "Edm.String", "filterable": true },
+    { "name": "folder_id", "type": "Edm.String", "filterable": true },
     { "name": "metadata", "type": "Edm.String", "searchable": false }
   ],
   "vectorSearch": {
@@ -472,13 +476,13 @@ Key components:
 ### Ingestion Flow
 
 ```
- User uploads documents via FastAPI
+ User uploads documents via FastAPI (with organization_id + folder_id)
         |
         v
- FastAPI saves to Azure Blob Storage
+ FastAPI saves to Azure Blob Storage at {org_id}/{folder_id}/{filename}
         |
         v
- Databricks job triggered with document_names parameter
+ Databricks job triggered with document_names, organization_id, folder_id
         |
         v
  1. DOCUMENT PARSING (Databricks + Document Intelligence)
@@ -502,6 +506,148 @@ Key components:
 ```
 
 Delta tables use append mode throughout. Each job run only touches the documents passed as parameters. Concurrent uploads from different users are safe (ACID-guaranteed by Delta).
+
+---
+
+## Database Schema
+
+All primary keys are **UUIDv7** (time-sortable, globally unique). The database choice is deferred -- likely Postgres or an Azure-managed option. The schema is database-agnostic.
+
+### BetterAuth Tables (managed by BetterAuth)
+
+These tables are created and managed by BetterAuth with the organization plugin. We do not modify their schema -- BetterAuth handles migrations. Listed here for reference.
+
+```
+user
+├── id              UUIDv7 (PK)
+├── name            text
+├── email           text (unique)
+├── emailVerified   boolean
+├── image           text (nullable)
+├── createdAt       timestamp
+└── updatedAt       timestamp
+
+session
+├── id              UUIDv7 (PK)
+├── expiresAt       timestamp
+├── token           text (unique, session token)
+├── ipAddress       text (nullable)
+├── userAgent       text (nullable)
+├── userId          UUIDv7 (FK -> user.id)
+├── createdAt       timestamp
+└── updatedAt       timestamp
+
+account
+├── id              UUIDv7 (PK)
+├── accountId       text (provider-specific ID)
+├── providerId      text (e.g. "credential", "google")
+├── userId          UUIDv7 (FK -> user.id)
+├── accessToken     text (nullable)
+├── refreshToken    text (nullable)
+├── idToken         text (nullable)
+├── expiresAt       timestamp (nullable)
+├── password        text (nullable, hashed)
+├── createdAt       timestamp
+└── updatedAt       timestamp
+
+organization
+├── id              UUIDv7 (PK)
+├── name            text
+├── slug            text (unique)
+├── logo            text (nullable)
+├── metadata        text (nullable)
+└── createdAt       timestamp
+
+member
+├── id              UUIDv7 (PK)
+├── organizationId  UUIDv7 (FK -> organization.id)
+├── userId          UUIDv7 (FK -> user.id)
+├── role            text (owner | admin | member)
+└── createdAt       timestamp
+
+invitation
+├── id              UUIDv7 (PK)
+├── organizationId  UUIDv7 (FK -> organization.id)
+├── email           text
+├── role            text (admin | member)
+├── status          text (pending | accepted | rejected | canceled | expired)
+├── expiresAt       timestamp
+├── inviterId       UUIDv7 (FK -> user.id)
+└── createdAt       timestamp
+```
+
+### Application Tables
+
+Application-specific tables use snake_case naming. All scoped by `organization_id` for multi-tenancy.
+
+```
+folder
+├── id                UUIDv7 (PK)
+├── organization_id   UUIDv7 (FK -> organization.id)
+├── name              text
+├── description       text (nullable)
+├── created_by        UUIDv7 (FK -> user.id)
+├── created_at        timestamp
+└── updated_at        timestamp
+
+document
+├── id                UUIDv7 (PK)
+├── organization_id   UUIDv7 (FK -> organization.id)
+├── folder_id         UUIDv7 (FK -> folder.id)
+├── name              text (original filename)
+├── blob_url          text (Azure Blob Storage URL)
+├── file_type         text (pdf | docx | txt)
+├── file_size         bigint (bytes)
+├── status            text (uploading | processing | indexed | failed)
+├── uploaded_by       UUIDv7 (FK -> user.id)
+├── created_at        timestamp
+└── updated_at        timestamp
+
+chat
+├── id                UUIDv7 (PK)
+├── organization_id   UUIDv7 (FK -> organization.id)
+├── user_id           UUIDv7 (FK -> user.id)
+├── title             text (nullable, auto-generated from first message)
+├── created_at        timestamp
+└── updated_at        timestamp
+
+message
+├── id                UUIDv7 (PK)
+├── chat_id           UUIDv7 (FK -> chat.id)
+├── role              text (user | assistant)
+├── content           text
+└── created_at        timestamp
+
+citation
+├── id                UUIDv7 (PK)
+├── message_id        UUIDv7 (FK -> message.id)
+├── number            int (display number [1], [2], etc.)
+├── document_id       UUIDv7 (FK -> document.id)
+├── document_name     text
+├── page_number       int
+├── chunk_text        text
+├── relevance_score   float
+└── created_at        timestamp
+```
+
+### Relationships
+
+```
+organization ──1:N──> folder ──1:N──> document
+organization ──1:N──> chat ──1:N──> message ──1:N──> citation
+                                                       │
+organization ──N:N──> user (via member)          document <──┘
+```
+
+### Notes
+
+- **BetterAuth uses camelCase**, application tables use snake_case -- this is intentional. BetterAuth manages its own schema and we don't control its naming conventions.
+- **UUIDv7** is preferred over UUIDv4 because it is time-sortable, which gives better index locality and allows `ORDER BY id` as a natural chronological sort.
+- **`document.status`** tracks the lifecycle: `uploading` → `processing` (Databricks job running) → `indexed` (searchable) or `failed`.
+- **`chat.title`** is auto-generated from the first user message (e.g. first 80 chars or an LLM-generated summary). Nullable until the first message is sent.
+- **Citations are persisted** per assistant message so chat history can render citation bubbles without re-running retrieval.
+- **Search index is separate** from the database. The search index (Azure AI Search) stores chunk-level data for retrieval. The database stores document-level metadata and chat history. They are linked by `document_id`.
+- **Database choice is deferred** -- the schema is database-agnostic. Likely Postgres (or Azure Database for PostgreSQL / Azure Cosmos DB for PostgreSQL).
 
 ---
 
@@ -550,31 +696,34 @@ Delta tables use append mode throughout. Each job run only touches the documents
 | Chunking notebook | ✅ Done | `02_chunking.py` -- Gets `document_ids` via task value, chunks only those documents, appends to Delta table `rag_ingestion.chunks`, sets task value `chunk_ids` |
 | Embedding generation notebook | ✅ Done | `03_embedding_generation.py` -- Gets `chunk_ids` via task value, embeds only new chunks via Azure AI Foundry EmbeddingsClient (batch of 100, exponential backoff), appends to Delta table `rag_ingestion.chunks_with_embeddings`, passes `chunk_ids` forward |
 | Search indexing notebook | ✅ Done | `04_indexing.py` -- Gets `chunk_ids` via task value, upserts only new chunks via `merge_or_upload_documents` |
-| Azure AI Search index setup | ✅ Done | Moved to `apps/api/scripts/create_search_index.py` (standalone script, runs during `setup.sh`) -- 9 fields, HNSW vector search (cosine, 3072-dim), semantic ranking config, idempotent `create_or_update_index` |
+| Azure AI Search index setup | ✅ Done | Moved to `apps/api/scripts/create_search_index.py` (standalone script, runs during `setup.sh`) -- 11 fields (including `organization_id` and `folder_id` as filterable), HNSW vector search (cosine, 3072-dim), semantic ranking config, idempotent `create_or_update_index` |
 | Databricks Asset Bundles | ✅ Done | `databricks.yml` with parameterized ingestion job (`document_names` parameter), 4 sequential tasks with dependencies using task values, serverless compute, 3 targets (dev/staging/prod) |
-| Document upload API | ✅ Done | `POST /documents/upload` (PDF/DOCX/TXT, 50MB max, Blob Storage), `GET /documents` (list blobs), Pydantic models in `document_models.py` |
+| Document upload API | ✅ Done | `POST /documents/upload` (PDF/DOCX/TXT, 50MB max, stored at `{org_id}/{folder_id}/{filename}`), `GET /documents?organization_id=...&folder_id=...` (list blobs), Pydantic models in `document_models.py` |
 | Azure Databricks migration | ✅ Done | Terraform module provisions Databricks workspace inside Azure subscription, setup.sh authenticates via Azure CLI token (no separate Databricks login needed) |
 
 **Deliverables**: End-to-end incremental ingestion job triggered per upload, Delta tables grow via append, concurrent uploads are safe
 
 ---
 
-### Phase 3: Retrieval + Generation
+### Phase 3: Retrieval + Generation ✅ COMPLETE
 
-**Goal**: Retrieval and answer generation in FastAPI
+**Goal**: Full RAG pipeline in FastAPI with multi-tenant data scoping
 
-| Task | Details |
-|------|---------|
-| Query rewriting | Use conversation history + Kimi K2.5 to rewrite follow-ups into standalone queries for retrieval |
-| Hybrid search | Azure AI Search SDK, vector + keyword + semantic, RRF fusion, filtering |
-| Reranking (optional) | Sentence Transformers cross-encoder (`ms-marco-MiniLM-L-12-v2`) -- toggleable via config, benchmarked against Azure semantic ranking |
-| Answer generation | Kimi K2.5 streaming with conversation history (capped at last N turns) + retrieved chunks. History provides conversational continuity, chunks are the source of truth. System prompt enforces citation rules to prevent history-based hallucination. SSE streaming. |
-| Citation extraction | Parse `[1]` `[2]` from output, map to source chunks |
-| API endpoints | `/chat/stream`, `/chat/query`, `/documents`, `/documents/{id}/chunks` |
+| Task | Status | Details |
+|------|--------|---------|
+| Multi-tenant data scoping | ✅ Done | All data scoped by `organization_id` (required) + `folder_id` (optional filter). Blob storage path: `{org_id}/{folder_id}/{filename}`. Search index has both as filterable fields. Databricks pipeline carries both through all notebooks via task values. BetterAuth (with organization plugin) will extract org from token in Phase 4 -- for now, `organization_id` is a request parameter. |
+| Query rewriting | ✅ Done | `services/query_service.py` -- Uses conversation history + Kimi K2.5 to rewrite follow-ups into standalone queries. Short-circuits if no history (no LLM call). `temperature=0.0` for deterministic output. |
+| Hybrid search | ✅ Done | `services/retrieval_service.py` -- Azure AI Search SDK with `VectorizedQuery` + `QueryType.SEMANTIC`. Always filters by `organization_id`, optionally by `folder_ids` and `document_names` via OData. Returns top 50 chunks sorted by semantic reranker score. |
+| Cross-encoder reranking | ✅ Done | `services/reranking_service.py` -- Sentence Transformers `cross-encoder/ms-marco-MiniLM-L-12-v2`, enabled by default (`RERANKING_ENABLED=true`). Lazy-loaded on first call. Scores each query-chunk pair and returns top K most relevant. |
+| Answer generation | ✅ Done | `services/generation_service.py` -- Kimi K2.5 streaming with conversation history (capped at last N turns) + retrieved chunks. System prompt enforces citation rules. SSE events: `chunk` → `citation` → `done`. Non-streaming variant for evaluation. |
+| Citation extraction | ✅ Done | Regex `\[(\d+)\]` after streaming completes, maps 1-indexed numbers to source chunks, emits citation SSE events with document metadata. |
+| Chat API endpoints | ✅ Done | `POST /chat/stream` (SSE streaming) and `POST /chat/query` (non-streaming, returns `ChatQueryResponse`). Both require `organization_id`, support optional `folder_ids` and `document_names` filters. Pipeline: rewrite → embed → search → rerank → generate, all wrapped in `asyncio.to_thread()`. |
 
-**Conversation history approach**: Both query rewriting and answer generation receive conversation history. Query rewriting uses it to produce a standalone retrieval query. Answer generation uses it (capped at last N turns) for natural conversational flow, while the system prompt strictly enforces that all factual claims must cite retrieved chunks. This prevents the model from hallucinating based on prior turns.
+**Multi-tenancy**: All data is scoped per organization for BetterAuth integration. Documents live in folders within an organization. Blob storage uses `{org_id}/{folder_id}/{filename}` prefix paths. Azure AI Search index has `organization_id` and `folder_id` as filterable fields. Search always filters by `organization_id`; users can optionally filter by specific `folder_ids` (empty = all folders in org). BetterAuth token extraction happens in Phase 4.
 
-**Deliverables**: Working chat endpoint with retrieval, generation, and inline citations
+**Conversation history**: Both query rewriting and answer generation receive conversation history. Query rewriting uses it to produce a standalone retrieval query. Answer generation uses it (capped at last N turns) for natural conversational flow, while the system prompt strictly enforces that all factual claims must cite retrieved chunks. This prevents the model from hallucinating based on prior turns.
+
+**Deliverables**: Full RAG pipeline with query rewriting, hybrid search, cross-encoder reranking, streaming answer generation with citations, and multi-tenant data scoping
 
 ---
 
@@ -755,12 +904,16 @@ Streaming chat with citations via Server-Sent Events.
 **Request**:
 ```json
 {
+  "organization_id": "org-abc123",
   "query": "What are the safety requirements for chemical storage?",
   "conversation_history": [
     { "role": "user", "content": "Tell me about warehouse safety." },
     { "role": "assistant", "content": "Warehouse safety includes..." }
   ],
-  "filters": { "document_names": ["Safety Manual 2024.pdf"] },
+  "filters": {
+    "folder_ids": ["folder-1"],
+    "document_names": ["Safety Manual 2024.pdf"]
+  },
   "top_k": 10
 }
 ```
@@ -796,12 +949,14 @@ Non-streaming query (used for evaluation).
 
 ### `POST /api/v1/documents/upload`
 
-Upload document for ingestion (multipart form data).
+Upload document for ingestion (multipart form data). Requires `organization_id` and `folder_id` form fields. Blob is stored at `{organization_id}/{folder_id}/{filename}`.
 
 **Response**:
 ```json
 {
   "document_id": "doc_abc123",
+  "organization_id": "org-abc123",
+  "folder_id": "folder-1",
   "status": "processing",
   "message": "Document uploaded. Ingestion job started."
 }
@@ -809,7 +964,7 @@ Upload document for ingestion (multipart form data).
 
 ### `GET /api/v1/documents`
 
-List all indexed documents.
+List documents for an organization. Requires `organization_id` query param, optionally filter by `folder_id`.
 
 ### `POST /api/v1/evaluation/run`
 

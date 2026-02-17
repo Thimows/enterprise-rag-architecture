@@ -14,13 +14,15 @@ dbutils.widgets.text("storage_container", "documents", "Storage Container Name")
 dbutils.widgets.text("secrets_scope", "rag-ingestion", "Databricks Secrets Scope")
 dbutils.widgets.text("output_table", "rag_ingestion.parsed_documents", "Output Delta Table")
 dbutils.widgets.text("document_names", "", "Comma-separated blob names to process (empty = all)")
+dbutils.widgets.text("organization_id", "", "Organization ID")
+dbutils.widgets.text("folder_id", "", "Folder ID")
 
 # COMMAND ----------
 
 import sys
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 sys.path.append("../")
 from utils.azure_clients import get_document_analysis_client, get_blob_service_client
@@ -31,6 +33,8 @@ from utils.quality_checks import validate_parsed_document
 container_name = dbutils.widgets.get("storage_container")
 output_table = dbutils.widgets.get("output_table")
 document_names_raw = dbutils.widgets.get("document_names").strip()
+organization_id = dbutils.widgets.get("organization_id").strip()
+folder_id = dbutils.widgets.get("folder_id").strip()
 
 blob_client = get_blob_service_client()
 doc_intel_client = get_document_analysis_client()
@@ -49,7 +53,7 @@ if document_names_raw:
         if ext not in SUPPORTED_EXTENSIONS:
             print(f"Skipping unsupported file: {name}")
             continue
-        blob = container_client.get_blob_properties(name)
+        blob = container_client.get_blob_client(name).get_blob_properties()
         blobs.append(blob)
     print(f"Processing {len(blobs)} specified documents")
 else:
@@ -74,6 +78,15 @@ for blob in blobs:
     document_id = str(uuid.uuid5(uuid.NAMESPACE_URL, blob.name))
     print(f"Processing: {blob.name} (id: {document_id})")
 
+    # Extract organization_id and folder_id from blob path ({org_id}/{folder_id}/{filename})
+    path_parts = blob.name.split("/")
+    if len(path_parts) >= 3 and not organization_id:
+        blob_org_id = path_parts[0]
+        blob_folder_id = path_parts[1]
+    else:
+        blob_org_id = organization_id
+        blob_folder_id = folder_id
+
     blob_data = container_client.download_blob(blob.name).readall()
     ext = blob.name.rsplit(".", 1)[-1].lower()
 
@@ -86,7 +99,9 @@ for blob in blobs:
             "content": content,
             "pages": [{"page_number": 1, "content": content, "layout": []}],
             "page_count": 1,
-            "parsed_at": datetime.utcnow().isoformat(),
+            "parsed_at": datetime.now(timezone.utc).isoformat(),
+            "organization_id": blob_org_id,
+            "folder_id": blob_folder_id,
         }
     else:
         content_type = (
@@ -101,18 +116,18 @@ for blob in blobs:
         result = poller.result()
 
         pages_data = []
-        for page in result.pages:
+        for page in result.pages or []:
             page_content = ""
             page_layout = []
-            for paragraph in result.paragraphs:
-                if any(br.page_number == page.page_number for br in paragraph.bounding_regions):
+            for paragraph in result.paragraphs or []:
+                if any(br.page_number == page.page_number for br in (paragraph.bounding_regions or [])):
                     page_content += paragraph.content + "\n"
                     page_layout.append({
                         "content": paragraph.content,
                         "role": getattr(paragraph, "role", None),
                         "bounding_regions": [
                             {"page_number": br.page_number}
-                            for br in paragraph.bounding_regions
+                            for br in (paragraph.bounding_regions or [])
                         ],
                     })
             pages_data.append({
@@ -130,7 +145,9 @@ for blob in blobs:
             "content": full_content,
             "pages": pages_data,
             "page_count": len(pages_data),
-            "parsed_at": datetime.utcnow().isoformat(),
+            "parsed_at": datetime.now(timezone.utc).isoformat(),
+            "organization_id": blob_org_id,
+            "folder_id": blob_folder_id,
         }
 
     is_valid, errors = validate_parsed_document(parsed_doc)
@@ -152,6 +169,8 @@ df.write.mode("append").saveAsTable(output_table)
 
 document_ids = [doc["document_id"] for doc in parsed_documents]
 dbutils.jobs.taskValues.set(key="document_ids", value=",".join(document_ids))
+dbutils.jobs.taskValues.set(key="organization_id", value=organization_id)
+dbutils.jobs.taskValues.set(key="folder_id", value=folder_id)
 
 print(f"Appended {len(parsed_documents)} parsed documents to {output_table}")
 

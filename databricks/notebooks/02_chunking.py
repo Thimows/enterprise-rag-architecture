@@ -38,8 +38,10 @@ overlap_tokens = int(dbutils.widgets.get("overlap_tokens"))
 
 # COMMAND ----------
 
-# Get document_ids from the previous task (parse_documents)
+# Get document_ids and org/folder context from the previous task (parse_documents)
 document_ids_raw = dbutils.jobs.taskValues.get(taskKey="parse_documents", key="document_ids", default="")
+organization_id = dbutils.jobs.taskValues.get(taskKey="parse_documents", key="organization_id", default="")
+folder_id = dbutils.jobs.taskValues.get(taskKey="parse_documents", key="folder_id", default="")
 
 if not document_ids_raw:
     print("No document IDs received from parsing task, nothing to chunk")
@@ -105,6 +107,8 @@ for doc in documents:
         chunk["document_url"] = document_url
         chunk["id"] = f"{document_id}_chunk_{i}"
         chunk["metadata"] = json.dumps(chunk.get("metadata", {}))
+        chunk["organization_id"] = doc.get("organization_id", organization_id) or organization_id
+        chunk["folder_id"] = doc.get("folder_id", folder_id) or folder_id
 
     is_valid, errors = validate_chunks(doc_chunks, max_tokens=max_tokens + 50)
     if not is_valid:
@@ -121,6 +125,8 @@ chunk_df.write.mode("append").saveAsTable(output_table)
 
 chunk_ids = [chunk["id"] for chunk in all_chunks]
 dbutils.jobs.taskValues.set(key="chunk_ids", value=",".join(chunk_ids))
+dbutils.jobs.taskValues.set(key="organization_id", value=organization_id)
+dbutils.jobs.taskValues.set(key="folder_id", value=folder_id)
 
 print(f"Appended {len(all_chunks)} chunks to {output_table}")
 

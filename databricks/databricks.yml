@@ -14,6 +14,10 @@ resources:
       parameters:
         - name: document_names
           default: ""
+        - name: organization_id
+          default: ""
+        - name: folder_id
+          default: ""
       environments:
         - environment_key: ingestion_env
           spec:
@@ -31,6 +35,8 @@ resources:
             notebook_path: ./notebooks/01_document_parsing.py
             base_parameters:
               document_names: "{{job.parameters.document_names}}"
+              organization_id: "{{job.parameters.organization_id}}"
+              folder_id: "{{job.parameters.folder_id}}"
             source: WORKSPACE
           timeout_seconds: 3600
 

@@ -36,8 +36,10 @@ expected_dims = int(dbutils.widgets.get("embedding_dimensions"))
 
 # COMMAND ----------
 
-# Get chunk_ids from the previous task (chunk_documents)
+# Get chunk_ids and org/folder context from the previous task (chunk_documents)
 chunk_ids_raw = dbutils.jobs.taskValues.get(taskKey="chunk_documents", key="chunk_ids", default="")
+organization_id = dbutils.jobs.taskValues.get(taskKey="chunk_documents", key="organization_id", default="")
+folder_id = dbutils.jobs.taskValues.get(taskKey="chunk_documents", key="folder_id", default="")
 
 if not chunk_ids_raw:
     print("No chunk IDs received from chunking task, nothing to embed")
@@ -119,6 +121,8 @@ result_df = spark.createDataFrame(all_results)
 result_df.write.mode("append").saveAsTable(output_table)
 
 dbutils.jobs.taskValues.set(key="chunk_ids", value=chunk_ids_raw)
+dbutils.jobs.taskValues.set(key="organization_id", value=organization_id)
+dbutils.jobs.taskValues.set(key="folder_id", value=folder_id)
 
 print(f"Appended {len(all_results)} chunks with embeddings to {output_table}")
 

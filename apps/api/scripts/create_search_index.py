@@ -50,6 +50,8 @@ fields = [
     SimpleField(name="page_number", type=SearchFieldDataType.Int32, filterable=True, sortable=True),
     SimpleField(name="chunk_index", type=SearchFieldDataType.Int32, filterable=True),
     SimpleField(name="metadata", type=SearchFieldDataType.String, searchable=False),
+    SimpleField(name="organization_id", type=SearchFieldDataType.String, filterable=True),
+    SimpleField(name="folder_id", type=SearchFieldDataType.String, filterable=True),
 ]
 
 vector_search = VectorSearch(

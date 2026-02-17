@@ -32,8 +32,10 @@ upload_batch_size = int(dbutils.widgets.get("upload_batch_size"))
 
 # COMMAND ----------
 
-# Get chunk_ids from the previous task (generate_embeddings)
+# Get chunk_ids and org/folder context from the previous task (generate_embeddings)
 chunk_ids_raw = dbutils.jobs.taskValues.get(taskKey="generate_embeddings", key="chunk_ids", default="")
+organization_id = dbutils.jobs.taskValues.get(taskKey="generate_embeddings", key="organization_id", default="")
+folder_id = dbutils.jobs.taskValues.get(taskKey="generate_embeddings", key="folder_id", default="")
 
 if not chunk_ids_raw:
     print("No chunk IDs received from embedding task, nothing to index")
@@ -68,6 +70,8 @@ for row in chunks:
         "page_number": row.get("page_number") or 0,
         "chunk_index": row["chunk_index"],
         "metadata": row.get("metadata", "{}"),
+        "organization_id": row["organization_id"],
+        "folder_id": row["folder_id"],
     }
 
     is_valid, errors = validate_index_document(doc)

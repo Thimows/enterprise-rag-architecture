@@ -11,4 +11,5 @@ dependencies = [
     "azure-ai-formrecognizer>=3.3.0",
     "azure-storage-blob>=12.19.0",
     "pydantic-settings>=2.0.0",
+    "sentence-transformers>=3.0.0",
 ]
