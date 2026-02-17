@@ -11,10 +11,9 @@ resources:
   jobs:
     document_ingestion_job:
       name: "[${bundle.target}] RAG Document Ingestion"
-      schedule:
-        quartz_cron_expression: "0 0 2 * * ?"
-        timezone_id: UTC
-        pause_status: PAUSED
+      parameters:
+        - name: document_names
+          default: ""
       environments:
         - environment_key: ingestion_env
           spec:
@@ -30,6 +29,8 @@ resources:
           environment_key: ingestion_env
           notebook_task:
             notebook_path: ./notebooks/01_document_parsing.py
+            base_parameters:
+              document_names: "{{job.parameters.document_names}}"
             source: WORKSPACE
           timeout_seconds: 3600
 
@@ -59,22 +60,6 @@ resources:
             notebook_path: ./notebooks/04_indexing.py
             source: WORKSPACE
           timeout_seconds: 3600
-
-    create_search_index_job:
-      name: "[${bundle.target}] Create/Update Search Index"
-      environments:
-        - environment_key: utility_env
-          spec:
-            environment_version: "2"
-            dependencies:
-              - azure-search-documents>=11.4.0
-      tasks:
-        - task_key: create_index
-          environment_key: utility_env
-          notebook_task:
-            notebook_path: ./notebooks/00_create_search_index.py
-            source: WORKSPACE
-          timeout_seconds: 300
 
 targets:
   dev:

@@ -2,10 +2,10 @@
 
 # COMMAND ----------
 # MAGIC %md
-# MAGIC # 04 — Indexing
+# MAGIC # 04 - Indexing
 # MAGIC
-# MAGIC Reads chunks with embeddings from Delta table and uploads them to Azure AI Search
-# MAGIC in batches using upsert semantics.
+# MAGIC Reads chunks with embeddings from Delta table (filtered by chunk_ids from the previous task)
+# MAGIC and uploads them to Azure AI Search in batches using upsert semantics.
 
 # COMMAND ----------
 
@@ -32,13 +32,25 @@ upload_batch_size = int(dbutils.widgets.get("upload_batch_size"))
 
 # COMMAND ----------
 
+# Get chunk_ids from the previous task (generate_embeddings)
+chunk_ids_raw = dbutils.jobs.taskValues.get(taskKey="generate_embeddings", key="chunk_ids", default="")
+
+if not chunk_ids_raw:
+    print("No chunk IDs received from embedding task, nothing to index")
+    dbutils.notebook.exit(json.dumps({"status": "SUCCESS", "success_count": 0, "error_count": 0}))
+
+chunk_ids = [cid.strip() for cid in chunk_ids_raw.split(",") if cid.strip()]
+print(f"Indexing {len(chunk_ids)} chunks")
+
+# COMMAND ----------
+
 search_client = get_search_client(index_name)
 
 # COMMAND ----------
 
-df = spark.table(input_table)
+df = spark.table(input_table).filter(spark.col("id").isin(chunk_ids))
 chunks = df.collect()
-print(f"Uploading {len(chunks)} chunks to index '{index_name}'")
+print(f"Read {len(chunks)} chunks from {input_table}")
 
 # COMMAND ----------
 

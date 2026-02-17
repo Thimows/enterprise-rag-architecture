@@ -1,44 +1,38 @@
-# Databricks notebook source
+"""Create or update the Azure AI Search index.
 
-# COMMAND ----------
-# MAGIC %md
-# MAGIC # 00 — Create/Update Azure AI Search Index
-# MAGIC
-# MAGIC Creates the search index with vector, keyword, and semantic search configuration.
-# MAGIC This is an idempotent operation — safe to re-run.
+Reads credentials from the .env file (same as the FastAPI app).
+Idempotent: safe to re-run.
 
-# COMMAND ----------
-
-dbutils.widgets.text("index_name", "rag-index", "Search Index Name")
-dbutils.widgets.text("secrets_scope", "rag-ingestion", "Databricks Secrets Scope")
-
-# COMMAND ----------
+Usage:
+    cd apps/api
+    uv run python scripts/create_search_index.py
+"""
 
 import sys
-sys.path.append("../")
+from pathlib import Path
 
-from utils.azure_clients import get_search_index_client
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-# COMMAND ----------
-
+from azure.core.credentials import AzureKeyCredential
+from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
-    SearchIndex,
+    HnswAlgorithmConfiguration,
     SearchField,
     SearchFieldDataType,
-    SimpleField,
+    SearchIndex,
     SearchableField,
-    VectorSearch,
-    HnswAlgorithmConfiguration,
-    VectorSearchProfile,
     SemanticConfiguration,
-    SemanticSearch,
-    SemanticPrioritizedFields,
     SemanticField,
+    SemanticPrioritizedFields,
+    SemanticSearch,
+    SimpleField,
+    VectorSearch,
+    VectorSearchProfile,
 )
 
-# COMMAND ----------
+from config.settings import settings
 
-index_name = dbutils.widgets.get("index_name")
+INDEX_NAME = settings.AZURE_SEARCH_INDEX_NAME
 
 fields = [
     SimpleField(name="id", type=SearchFieldDataType.String, key=True, filterable=True),
@@ -81,19 +75,17 @@ semantic_config = SemanticConfiguration(
 semantic_search = SemanticSearch(configurations=[semantic_config])
 
 index = SearchIndex(
-    name=index_name,
+    name=INDEX_NAME,
     fields=fields,
     vector_search=vector_search,
     semantic_search=semantic_search,
 )
 
-# COMMAND ----------
+client = SearchIndexClient(
+    endpoint=settings.AZURE_SEARCH_ENDPOINT,
+    credential=AzureKeyCredential(settings.AZURE_SEARCH_API_KEY),
+)
 
-client = get_search_index_client()
 result = client.create_or_update_index(index)
 print(f"Index '{result.name}' created/updated successfully.")
 print(f"Fields: {[f.name for f in result.fields]}")
-
-# COMMAND ----------
-
-dbutils.notebook.exit("SUCCESS")

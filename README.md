@@ -41,6 +41,13 @@ Every answer includes numbered citation bubbles that link back to the exact sour
 
 ## Key Features
 
+**Ingestion Pipeline**
+- Incremental processing: only newly uploaded documents get parsed, chunked and embedded
+- Each upload triggers a parameterized Azure Databricks job with the specific document names
+- Task values pass document/chunk IDs between pipeline stages within a single job run
+- Delta tables grow via append (ACID-safe for concurrent writes from parallel uploads)
+- For high-volume production workloads, the pipeline can be replaced with Databricks Auto Loader for real-time streaming ingestion via Azure Event Grid
+
 **RAG Pipeline**
 - Document parsing via Azure Document Intelligence with layout analysis
 - Semantic chunking that preserves document structure and sentence boundaries
@@ -166,7 +173,7 @@ npm install
 npm run dev
 ```
 
-The setup script handles everything: Terraform provisioning, `.env` file generation from Terraform outputs, Databricks secrets configuration, and bundle deployment. It's idempotent — safe to re-run anytime.
+The setup script handles everything: Terraform provisioning, `.env` file generation from Terraform outputs, search index creation, Databricks secrets configuration and bundle deployment. It's idempotent and safe to re-run anytime.
 
 The FastAPI server starts at `http://localhost:8000` and the Next.js app at `http://localhost:3000`.
 

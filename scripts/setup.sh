@@ -60,7 +60,7 @@ else
 fi
 
 # ─── Step 1: Terraform ──────────────────────────────────────────────
-info "Step 1/4 — Provisioning Azure resources with Terraform..."
+info "Step 1/5 — Provisioning Azure resources with Terraform..."
 
 cd "$ROOT_DIR/terraform"
 
@@ -95,7 +95,7 @@ get_output() {
 }
 
 # ─── Step 2: Generate .env files from Terraform outputs ─────────────
-info "Step 2/4 — Generating .env files from Terraform outputs..."
+info "Step 2/5 — Generating .env files from Terraform outputs..."
 
 # apps/api/.env
 cat > "$ROOT_DIR/apps/api/.env" <<EOF
@@ -125,8 +125,16 @@ NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 EOF
 ok "Created apps/web/.env.local"
 
-# ─── Step 3: Databricks secrets ─────────────────────────────────────
-info "Step 3/4 — Configuring Databricks secrets (writing 10 secrets)..."
+# ─── Step 3: Create search index ──────────────────────────────────
+info "Step 3/5 — Creating Azure AI Search index..."
+
+cd "$ROOT_DIR/apps/api"
+uv run python scripts/create_search_index.py
+ok "Search index created/updated"
+
+# ─── Step 4: Databricks secrets ─────────────────────────────────────
+cd "$ROOT_DIR/terraform"
+info "Step 4/5 — Configuring Databricks secrets (writing 10 secrets)..."
 
 # Authenticate Databricks CLI using the Azure-managed workspace
 DATABRICKS_HOST=$(get_output databricks_workspace_url)
@@ -162,7 +170,7 @@ put_secret "document-intelligence-key"          "$(get_output document_intellige
 ok "All 10 secrets configured"
 
 # ─── Step 4: Deploy Databricks bundle ───────────────────────────────
-info "Step 4/4 — Deploying Databricks bundle (this can take a minute)..."
+info "Step 5/5 — Deploying Databricks bundle (this can take a minute)..."
 
 cd "$ROOT_DIR/databricks"
 databricks bundle deploy --target dev
@@ -181,6 +189,5 @@ echo "  Next.js  → http://localhost:3000"
 echo "  API docs → http://localhost:8000/docs"
 echo ""
 echo "  To run the ingestion pipeline:"
-echo "    databricks bundle run create_search_index_job --target dev"
 echo "    databricks bundle run document_ingestion_job --target dev"
 echo ""

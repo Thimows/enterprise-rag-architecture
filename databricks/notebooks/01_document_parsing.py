@@ -2,17 +2,18 @@
 
 # COMMAND ----------
 # MAGIC %md
-# MAGIC # 01 — Document Parsing
+# MAGIC # 01 - Document Parsing
 # MAGIC
 # MAGIC Reads documents from Azure Blob Storage, parses them via Azure Document Intelligence,
-# MAGIC and writes parsed results to a Delta table for downstream processing.
+# MAGIC and appends parsed results to a Delta table. Only processes the documents specified
+# MAGIC in the `document_names` parameter (or all documents if empty).
 
 # COMMAND ----------
 
 dbutils.widgets.text("storage_container", "documents", "Storage Container Name")
 dbutils.widgets.text("secrets_scope", "rag-ingestion", "Databricks Secrets Scope")
 dbutils.widgets.text("output_table", "rag_ingestion.parsed_documents", "Output Delta Table")
-dbutils.widgets.text("document_prefix", "", "Blob prefix filter (optional)")
+dbutils.widgets.text("document_names", "", "Comma-separated blob names to process (empty = all)")
 
 # COMMAND ----------
 
@@ -29,7 +30,7 @@ from utils.quality_checks import validate_parsed_document
 
 container_name = dbutils.widgets.get("storage_container")
 output_table = dbutils.widgets.get("output_table")
-document_prefix = dbutils.widgets.get("document_prefix")
+document_names_raw = dbutils.widgets.get("document_names").strip()
 
 blob_client = get_blob_service_client()
 doc_intel_client = get_document_analysis_client()
@@ -38,13 +39,32 @@ container_client = blob_client.get_container_client(container_name)
 # COMMAND ----------
 
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".doc", ".txt"}
-blobs = []
-for blob in container_client.list_blobs(name_starts_with=document_prefix or None):
-    ext = "." + blob.name.rsplit(".", 1)[-1].lower() if "." in blob.name else ""
-    if ext in SUPPORTED_EXTENSIONS:
-        blobs.append(blob)
 
-print(f"Found {len(blobs)} documents to process")
+if document_names_raw:
+    # Process only the specified documents
+    target_names = [name.strip() for name in document_names_raw.split(",") if name.strip()]
+    blobs = []
+    for name in target_names:
+        ext = "." + name.rsplit(".", 1)[-1].lower() if "." in name else ""
+        if ext not in SUPPORTED_EXTENSIONS:
+            print(f"Skipping unsupported file: {name}")
+            continue
+        blob = container_client.get_blob_properties(name)
+        blobs.append(blob)
+    print(f"Processing {len(blobs)} specified documents")
+else:
+    # Process all documents in the container
+    blobs = []
+    for blob in container_client.list_blobs():
+        ext = "." + blob.name.rsplit(".", 1)[-1].lower() if "." in blob.name else ""
+        if ext in SUPPORTED_EXTENSIONS:
+            blobs.append(blob)
+    print(f"Processing all {len(blobs)} documents in container")
+
+if not blobs:
+    print("No documents to process")
+    dbutils.jobs.taskValues.set(key="document_ids", value="")
+    dbutils.notebook.exit(json.dumps({"status": "SUCCESS", "document_count": 0}))
 
 # COMMAND ----------
 
@@ -128,9 +148,12 @@ for doc in parsed_documents:
     del doc["pages"]
 
 df = spark.createDataFrame(parsed_documents)
-df.write.mode("overwrite").saveAsTable(output_table)
+df.write.mode("append").saveAsTable(output_table)
 
-print(f"Wrote {df.count()} parsed documents to {output_table}")
+document_ids = [doc["document_id"] for doc in parsed_documents]
+dbutils.jobs.taskValues.set(key="document_ids", value=",".join(document_ids))
+
+print(f"Appended {len(parsed_documents)} parsed documents to {output_table}")
 
 # COMMAND ----------
 

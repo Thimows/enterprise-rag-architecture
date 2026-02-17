@@ -2,10 +2,10 @@
 
 # COMMAND ----------
 # MAGIC %md
-# MAGIC # 03 — Embedding Generation
+# MAGIC # 03 - Embedding Generation
 # MAGIC
-# MAGIC Reads chunks from Delta table, generates embeddings via Azure AI Foundry in batches,
-# MAGIC and writes the embeddings back alongside the chunk data.
+# MAGIC Reads chunks from Delta table (filtered by chunk_ids from the previous task),
+# MAGIC generates embeddings via Azure AI Foundry in batches, and appends the results.
 
 # COMMAND ----------
 
@@ -36,13 +36,26 @@ expected_dims = int(dbutils.widgets.get("embedding_dimensions"))
 
 # COMMAND ----------
 
+# Get chunk_ids from the previous task (chunk_documents)
+chunk_ids_raw = dbutils.jobs.taskValues.get(taskKey="chunk_documents", key="chunk_ids", default="")
+
+if not chunk_ids_raw:
+    print("No chunk IDs received from chunking task, nothing to embed")
+    dbutils.jobs.taskValues.set(key="chunk_ids", value="")
+    dbutils.notebook.exit(json.dumps({"status": "SUCCESS", "embedded_count": 0}))
+
+chunk_ids = [cid.strip() for cid in chunk_ids_raw.split(",") if cid.strip()]
+print(f"Generating embeddings for {len(chunk_ids)} chunks")
+
+# COMMAND ----------
+
 client = get_embeddings_client()
 
 # COMMAND ----------
 
-df = spark.table(input_table)
+df = spark.table(input_table).filter(spark.col("id").isin(chunk_ids))
 chunks = df.collect()
-print(f"Generating embeddings for {len(chunks)} chunks")
+print(f"Read {len(chunks)} chunks from {input_table}")
 
 # COMMAND ----------
 
@@ -103,9 +116,11 @@ print(f"Generated embeddings for {len(all_results)} chunks")
 # COMMAND ----------
 
 result_df = spark.createDataFrame(all_results)
-result_df.write.mode("overwrite").saveAsTable(output_table)
+result_df.write.mode("append").saveAsTable(output_table)
 
-print(f"Wrote {result_df.count()} chunks with embeddings to {output_table}")
+dbutils.jobs.taskValues.set(key="chunk_ids", value=chunk_ids_raw)
+
+print(f"Appended {len(all_results)} chunks with embeddings to {output_table}")
 
 # COMMAND ----------
 

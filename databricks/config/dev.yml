@@ -2,8 +2,3 @@ targets:
   dev:
     mode: development
     default: true
-    resources:
-      jobs:
-        document_ingestion_job:
-          schedule:
-            pause_status: PAUSED

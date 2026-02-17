@@ -2,10 +2,10 @@
 
 # COMMAND ----------
 # MAGIC %md
-# MAGIC # 02 — Chunking
+# MAGIC # 02 - Chunking
 # MAGIC
-# MAGIC Reads parsed documents from Delta table, applies the selected chunking strategy,
-# MAGIC and writes chunks to a new Delta table.
+# MAGIC Reads parsed documents from Delta table (filtered by document_ids from the previous task),
+# MAGIC applies the selected chunking strategy, and appends chunks to a Delta table.
 
 # COMMAND ----------
 
@@ -38,7 +38,20 @@ overlap_tokens = int(dbutils.widgets.get("overlap_tokens"))
 
 # COMMAND ----------
 
-df = spark.table(input_table)
+# Get document_ids from the previous task (parse_documents)
+document_ids_raw = dbutils.jobs.taskValues.get(taskKey="parse_documents", key="document_ids", default="")
+
+if not document_ids_raw:
+    print("No document IDs received from parsing task, nothing to chunk")
+    dbutils.jobs.taskValues.set(key="chunk_ids", value="")
+    dbutils.notebook.exit(json.dumps({"status": "SUCCESS", "chunk_count": 0, "strategy": strategy}))
+
+document_ids = [did.strip() for did in document_ids_raw.split(",") if did.strip()]
+print(f"Chunking {len(document_ids)} documents")
+
+# COMMAND ----------
+
+df = spark.table(input_table).filter(spark.col("document_id").isin(document_ids))
 documents = df.collect()
 print(f"Read {len(documents)} documents from {input_table}")
 
@@ -104,9 +117,12 @@ print(f"Generated {len(all_chunks)} chunks using '{strategy}' strategy")
 # COMMAND ----------
 
 chunk_df = spark.createDataFrame(all_chunks)
-chunk_df.write.mode("overwrite").saveAsTable(output_table)
+chunk_df.write.mode("append").saveAsTable(output_table)
 
-print(f"Wrote {chunk_df.count()} chunks to {output_table}")
+chunk_ids = [chunk["id"] for chunk in all_chunks]
+dbutils.jobs.taskValues.set(key="chunk_ids", value=",".join(chunk_ids))
+
+print(f"Appended {len(all_chunks)} chunks to {output_table}")
 
 # COMMAND ----------
 
