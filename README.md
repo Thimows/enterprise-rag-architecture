@@ -49,7 +49,7 @@ Every answer includes numbered citation bubbles that link back to the exact sour
 - For high-volume production workloads, the pipeline can be replaced with Databricks Auto Loader for real-time streaming ingestion via Azure Event Grid
 
 **RAG Pipeline**
-- Query rewriting via GPT-5 Nano (with `reasoning_effort: low`) to resolve follow-up questions into standalone retrieval queries using conversation history
+- Smart query rewriting via GPT-5 Nano (with `reasoning_effort: low`) — rewrites follow-up questions into standalone retrieval queries using conversation history, while classifying conversational messages (greetings, thanks, small talk) to skip the RAG pipeline entirely for faster, more natural responses
 - Document parsing via Azure Document Intelligence with layout analysis
 - Custom chunking strategies (see below) — no dependency on Azure's built-in indexer pipeline, giving you full control over chunk size, overlap and splitting logic
 - Hybrid search combining vector, keyword and semantic ranking with RRF fusion
@@ -133,7 +133,7 @@ chat_model_format = "OpenAI"
 chat_model_name   = "gpt-5.2-chat"
 ```
 
-Query rewriting uses **GPT-5 Nano** (OpenAI via Azure) with `reasoning_effort: low` for ultra-fast, low-latency inference. This lightweight model rewrites follow-up questions into standalone retrieval queries using conversation history, keeping the pipeline fast without sacrificing quality.
+Query rewriting uses **GPT-5 Nano** (OpenAI via Azure) with `reasoning_effort: low` for ultra-fast, low-latency inference. This lightweight model serves a dual purpose: it rewrites follow-up questions into standalone retrieval queries using conversation history, and it classifies user intent — detecting conversational messages (thanks, greetings, acknowledgements) so the RAG pipeline is skipped entirely. This avoids unnecessary embedding, search and reranking calls for non-retrieval messages, resulting in faster responses and more natural conversation flow.
 
 Embeddings use **text-embedding-3-large** (OpenAI via Azure), which is also Direct from Azure.
 
