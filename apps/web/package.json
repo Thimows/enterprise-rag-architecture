@@ -11,6 +11,7 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@azure/identity": "^4.13.0",
     "@azure/storage-blob": "^12.31.0",
     "@repo/ui": "*",
     "@tanstack/react-query": "^5.90.21",

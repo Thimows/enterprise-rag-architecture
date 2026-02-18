@@ -7,8 +7,9 @@ import {
   BlobSASPermissions,
   BlobServiceClient,
   generateBlobSASQueryParameters,
-  StorageSharedKeyCredential,
+  SASProtocol,
 } from "@azure/storage-blob"
+import { DefaultAzureCredential } from "@azure/identity"
 
 const CONTENT_TYPES: Record<string, string> = {
   ".pdf": "application/pdf",
@@ -23,37 +24,32 @@ function getContentType(path: string): string {
   return CONTENT_TYPES[ext] ?? "application/octet-stream"
 }
 
-function generateSasUrl(blobPath: string): string {
-  const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING
-  const containerName =
-    process.env.AZURE_STORAGE_CONTAINER_NAME ?? "documents"
+const accountName = process.env.AZURE_STORAGE_ACCOUNT_NAME ?? ""
+const containerName = process.env.AZURE_STORAGE_CONTAINER_NAME ?? "documents"
+const credential = new DefaultAzureCredential()
+const blobServiceClient = new BlobServiceClient(
+  `https://${accountName}.blob.core.windows.net`,
+  credential,
+)
 
-  if (!connectionString) {
+async function generateSasUrl(blobPath: string): Promise<string> {
+  if (!accountName) {
     throw new TRPCError({
       code: "INTERNAL_SERVER_ERROR",
       message: "Storage not configured",
     })
   }
 
-  const accountName = connectionString.match(/AccountName=([^;]+)/)?.[1]
-  const accountKey = connectionString.match(/AccountKey=([^;]+)/)?.[1]
-
-  if (!accountName || !accountKey) {
-    throw new TRPCError({
-      code: "INTERNAL_SERVER_ERROR",
-      message: "Invalid storage connection string",
-    })
-  }
-
-  // blobPath is a relative path like "orgId/folderId/file.pdf"
-  const blobServiceClient =
-    BlobServiceClient.fromConnectionString(connectionString)
   const containerClient = blobServiceClient.getContainerClient(containerName)
   const blobClient = containerClient.getBlobClient(blobPath)
 
-  const credential = new StorageSharedKeyCredential(accountName, accountKey)
   const startsOn = new Date()
   const expiresOn = new Date(startsOn.getTime() + 60 * 60 * 1000) // 1 hour
+
+  const userDelegationKey = await blobServiceClient.getUserDelegationKey(
+    startsOn,
+    expiresOn,
+  )
 
   const sasToken = generateBlobSASQueryParameters(
     {
@@ -62,10 +58,12 @@ function generateSasUrl(blobPath: string): string {
       permissions: BlobSASPermissions.parse("r"),
       startsOn,
       expiresOn,
+      protocol: SASProtocol.Https,
       contentDisposition: "inline",
       contentType: getContentType(blobPath),
     },
-    credential,
+    userDelegationKey,
+    accountName,
   ).toString()
 
   return `${blobClient.url}?${sasToken}`
@@ -113,7 +111,7 @@ export const documentRouter = createTRPCRouter({
         })
       }
 
-      return { url: generateSasUrl(doc.blobUrl) }
+      return { url: await generateSasUrl(doc.blobUrl) }
     }),
 
   create: protectedProcedure

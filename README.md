@@ -193,6 +193,8 @@ npm run dev
 
 The setup script handles everything: Terraform provisioning, `.env` file generation from Terraform outputs, database schema push, search index creation, Databricks secrets configuration and bundle deployment. It's idempotent and safe to re-run anytime.
 
+`npm run dev` automatically checks that the Azure CLI is logged in before starting. All Azure services authenticate via `DefaultAzureCredential` — no API keys or connection strings needed in your `.env` files. Locally, this uses your `az login` session; in production, it uses Azure Managed Identity.
+
 On first run, the script auto-generates a secure PostgreSQL password and stores it in `terraform/terraform.tfvars`. If you need the password later (e.g. for a database client), you can find it there.
 
 ### Azure Costs
@@ -247,9 +249,9 @@ Designed for enterprise environments where data privacy and compliance are non-n
 - All documents and queries stay within your private Azure tenant
 - Azure Databricks workspace runs inside your Azure subscription (not external SaaS)
 - No data sent to public AI services or external logging
-- RBAC with Azure Managed Identities (no credentials in code)
+- RBAC with Azure Managed Identities via `DefaultAzureCredential` — zero API keys in code. Locally authenticates through `az login`, in production via Managed Identity. Terraform provisions all required role assignments automatically.
 - Encryption at rest and in transit (TLS 1.2+)
-- Input validation and rate limiting on all API endpoints
+- Input validation on all API endpoints via Pydantic
 - On-demand document access via short-lived SAS tokens — no permanent public URLs. When viewing a cited document, the app generates a read-only Azure Blob Storage SAS URL scoped to that specific blob, valid for one hour. Expired tokens are never stored.
 
 <!-- TODO: Add architecture diagram -->

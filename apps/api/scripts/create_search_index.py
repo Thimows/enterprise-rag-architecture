@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from azure.core.credentials import AzureKeyCredential
+from azure.identity import DefaultAzureCredential
 from azure.search.documents.indexes import SearchIndexClient
 from azure.search.documents.indexes.models import (
     HnswAlgorithmConfiguration,
@@ -85,7 +85,7 @@ index = SearchIndex(
 
 client = SearchIndexClient(
     endpoint=settings.AZURE_SEARCH_ENDPOINT,
-    credential=AzureKeyCredential(settings.AZURE_SEARCH_API_KEY),
+    credential=DefaultAzureCredential(),
 )
 
 result = client.create_or_update_index(index)

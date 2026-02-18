@@ -127,20 +127,17 @@ info "Step 2/6 — Generating .env files from Terraform outputs..."
 cat > "$ROOT_DIR/apps/api/.env" <<EOF
 AZURE_AI_ENDPOINT=$(get_output azure_ai_endpoint)
 AZURE_AI_RESOURCE_NAME=$(get_output azure_ai_resource_name)
-AZURE_AI_KEY=$(get_output azure_ai_key)
 AZURE_AI_CHAT_DEPLOYMENT=$(get_output azure_ai_chat_deployment)
 AZURE_AI_REWRITE_DEPLOYMENT=$(get_output azure_ai_rewrite_deployment)
 AZURE_AI_EMBEDDING_DEPLOYMENT=$(get_output azure_ai_embedding_deployment)
 
 AZURE_SEARCH_ENDPOINT=$(get_output azure_search_endpoint)
-AZURE_SEARCH_API_KEY=$(get_output azure_search_key)
 AZURE_SEARCH_INDEX_NAME=rag-index
 
-AZURE_STORAGE_CONNECTION_STRING=$(get_output storage_connection_string)
+AZURE_STORAGE_ACCOUNT_NAME=$(get_output storage_account_name)
 AZURE_STORAGE_CONTAINER_NAME=documents
 
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=$(get_output document_intelligence_endpoint)
-AZURE_DOCUMENT_INTELLIGENCE_KEY=$(get_output document_intelligence_key)
 
 CORS_ORIGINS=["http://localhost:4000"]
 
@@ -155,6 +152,8 @@ NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
 DATABASE_URL=postgresql://$(get_output postgresql_user):$(get_output postgresql_password)@$(get_output postgresql_host):5432/$(get_output postgresql_database)?sslmode=require
 BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
 BETTER_AUTH_URL=http://localhost:4000
+AZURE_STORAGE_ACCOUNT_NAME=$(get_output storage_account_name)
+AZURE_STORAGE_CONTAINER_NAME=documents
 EOF
 ok "Created apps/web/.env.local"
 
@@ -167,9 +166,21 @@ ok "Database schema up to date"
 
 # ─── Step 4: Create search index ──────────────────────────────────
 info "Step 4/6 — Creating Azure AI Search index..."
+info "  (RBAC role assignments may take a few minutes to propagate)"
 
 cd "$ROOT_DIR/apps/api"
-uv run python scripts/create_search_index.py
+MAX_RETRIES=6
+RETRY_DELAY=30
+for i in $(seq 1 $MAX_RETRIES); do
+  if uv run python scripts/create_search_index.py 2>&1; then
+    break
+  fi
+  if [ "$i" -eq "$MAX_RETRIES" ]; then
+    err "Failed to create search index after $MAX_RETRIES attempts. Try again later: cd apps/api && uv run python scripts/create_search_index.py"
+  fi
+  warn "RBAC not yet propagated, retrying in ${RETRY_DELAY}s... ($i/$MAX_RETRIES)"
+  sleep $RETRY_DELAY
+done
 ok "Search index created/updated"
 
 # ─── Step 5: Databricks secrets ─────────────────────────────────────

@@ -39,7 +39,7 @@ module "document_intelligence" {
 
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
-  project_prefix      = var.project_prefix
+  project_prefix      = "${var.project_prefix}-${random_id.suffix.hex}"
 }
 
 module "databricks" {

@@ -4,4 +4,8 @@ resource "azurerm_search_service" "search" {
   location            = var.location
   sku                 = var.sku
   semantic_search_sku = "free"
+
+  # Enable RBAC token auth alongside API keys (Databricks still uses keys)
+  local_authentication_enabled = true
+  authentication_failure_mode  = "http401WithBearerChallenge"
 }

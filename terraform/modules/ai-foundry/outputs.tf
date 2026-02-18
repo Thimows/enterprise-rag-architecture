@@ -22,3 +22,7 @@ output "rewrite_deployment_name" {
 output "embedding_deployment_name" {
   value = var.embedding_deployment_name
 }
+
+output "account_id" {
+  value = azurerm_cognitive_account.ai_foundry.id
+}
