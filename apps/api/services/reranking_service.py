@@ -53,10 +53,16 @@ def rerank_chunks(
 
     response = client.complete(
         messages=messages,
-        model_extras={"max_completion_tokens": 256, "reasoning_effort": "low"},
+        model_extras={"reasoning_effort": "low"},
     )
 
-    content = response.choices[0].message.content or ""
+    choice = response.choices[0] if response.choices else None
+    content = (choice.message.content or "").strip() if choice else ""
+    finish_reason = choice.finish_reason if choice else "no_choices"
+    logger.info(
+        "[RERANK] finish_reason=%s, content_length=%d, raw=%r",
+        finish_reason, len(content), content[:200],
+    )
 
     # Extract all integers from the response (robust to any formatting)
     ranked_indices = [int(x) for x in re.findall(r"\d+", content)]

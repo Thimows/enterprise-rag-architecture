@@ -33,11 +33,10 @@ export function StreamingMessage({
         isAnimating={!isComplete}
         parseIncompleteMarkdown
         components={{
-          a: (props) => {
-            const href = props.href ?? ""
-            const match = href.match(/^#cite-(\d+)$/)
+          a: ({ href, ...rest }) => {
+            const match = (href ?? "").match(/^#cite-(\d+)$/)
             if (!match) {
-              return <a {...props} />
+              return <a href={href} {...rest} />
             }
             const number = parseInt(match[1]!, 10)
             const citation = citations.find((c) => c.number === number)

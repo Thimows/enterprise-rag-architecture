@@ -8,7 +8,12 @@
       "outputs": [".next/**", "!.next/cache/**"]
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": ["^lint"],
+      "env": [
+        "DATABASE_URL",
+        "AZURE_STORAGE_CONNECTION_STRING",
+        "AZURE_STORAGE_CONTAINER_NAME"
+      ]
     },
     "check-types": {
       "dependsOn": ["^check-types"]

@@ -44,7 +44,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton onClick={() => { router.push("/"); router.refresh() }}>
+                <SidebarMenuButton onClick={() => { window.dispatchEvent(new Event("new-chat")); router.push("/") }}>
                   <SquarePen className="size-4" />
                   <span>New Chat</span>
                 </SidebarMenuButton>

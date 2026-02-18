@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { authClient } from "@/lib/auth-client"
 import { trpc } from "@/lib/trpc/client"
 import { useHeader } from "@/components/header-context"
@@ -11,6 +12,14 @@ export function NewChatPage() {
   const createChat = trpc.chat.create.useMutation()
   const utils = trpc.useUtils()
   const { setTitle } = useHeader()
+  const [sessionKey, setSessionKey] = useState(() => Date.now())
+
+  // Listen for "new-chat" events from the sidebar to reset state
+  useEffect(() => {
+    const handler = () => setSessionKey(Date.now())
+    window.addEventListener("new-chat", handler)
+    return () => window.removeEventListener("new-chat", handler)
+  }, [])
 
   if (isPending) {
     return <div className="flex flex-1" />
@@ -41,6 +50,7 @@ export function NewChatPage() {
 
   return (
     <ChatInterface
+      key={sessionKey}
       organizationId={activeOrg.id}
       onFirstMessage={handleFirstMessage}
     />
