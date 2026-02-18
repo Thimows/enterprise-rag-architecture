@@ -18,7 +18,7 @@ interface HeaderContextValue {
 const HeaderContext = createContext<HeaderContextValue | null>(null)
 
 export function HeaderProvider({ children }: { children: ReactNode }) {
-  const [title, setTitle] = useState("Enterprise RAG")
+  const [title, setTitle] = useState("Azure RAG")
   const [actions, setActions] = useState<ReactNode>(null)
 
   const stableSetTitle = useCallback((t: string) => setTitle(t), [])

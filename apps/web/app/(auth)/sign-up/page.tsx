@@ -60,7 +60,7 @@ export default function SignUpPage() {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Create account</CardTitle>
         <CardDescription>
-          Get started with Enterprise RAG
+          Get started with Azure RAG
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>

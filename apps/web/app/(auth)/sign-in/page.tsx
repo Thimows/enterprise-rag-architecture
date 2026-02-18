@@ -47,7 +47,7 @@ export default function SignInPage() {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl">Sign in</CardTitle>
         <CardDescription>
-          Sign in to your Enterprise RAG account
+          Sign in to your Azure RAG account
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>

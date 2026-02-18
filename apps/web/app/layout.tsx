@@ -15,7 +15,7 @@ const geistMono = localFont({
 })
 
 export const metadata: Metadata = {
-  title: "Enterprise RAG",
+  title: "Azure RAG",
   description:
     "Production-grade Retrieval-Augmented Generation for enterprise documents",
 }

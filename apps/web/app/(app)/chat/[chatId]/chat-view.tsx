@@ -17,7 +17,7 @@ export function ChatView({ chatId }: { chatId: string }) {
     } else if (data?.title) {
       setTitle(data.title)
     }
-    return () => setTitle("Enterprise RAG")
+    return () => setTitle("Azure RAG")
   }, [isPending, data?.title, setTitle])
 
   if (isPending) {

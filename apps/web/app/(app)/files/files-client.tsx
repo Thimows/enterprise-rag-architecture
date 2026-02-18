@@ -61,7 +61,7 @@ export function FilesClient({
       />,
     )
     return () => {
-      setTitle("Enterprise RAG")
+      setTitle("Azure RAG")
       setActions(null)
     }
   }, [setTitle, setActions, utils.folder.list, router])
