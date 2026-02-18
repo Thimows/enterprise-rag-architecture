@@ -18,25 +18,35 @@ Every answer includes numbered citation bubbles that link back to the exact sour
 
 ## Architecture
 
-```
-┌─── Azure Tenant ───────────────────────────────────────────────────────┐
-│                                                                        │
-│  Documents (PDF/Word/TXT)                                              │
-│          |                                                             │
-│          v                                                             │
-│    Azure Databricks ──────> Azure AI Search                            │
-│    (parse, chunk, embed)    (vector + keyword + semantic index)        │
-│                                      |                                 │
-│                                      v                                 │
-│    Next.js  <──────>  FastAPI  <──────>  Azure AI Foundry              │
-│    (chat UI,          (query rewrite,    (Mistral Large 3,             │
-│     streaming,         reranking,         GPT-5 Nano,                  │
-│     citations)         generation)        text-embedding-3-large)      │                                     │
-│                                                                        │
-│    Azure Blob Storage          Azure Document Intelligence             │
-│    (document store)            (PDF/DOCX parsing)                      │
-│                                                                        │
-└────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph tenant["Azure Tenant"]
+        direction TB
+
+        subgraph ingestion["Ingestion Pipeline"]
+            blob["Azure Blob Storage\ndocument store"]
+            docint["Document Intelligence\nPDF & DOCX parsing"]
+            databricks["Azure Databricks\nparse · chunk · embed"]
+        end
+
+        subgraph retrieval ["Retrieval & Generation"]
+            search["Azure AI Search\nvector + keyword + semantic"]
+            foundry["Azure AI Foundry\nMistral Large 3 · GPT-5 Nano\ntext-embedding-3-large"]
+        end
+
+        subgraph application ["Application Layer"]
+            next["Next.js\nchat UI · streaming · citations"]
+            fastapi["FastAPI\nquery rewrite · reranking · generation"]
+        end
+    end
+
+    docs["Documents\nPDF · Word · TXT"] --> blob
+    blob --> databricks
+    databricks <--> docint
+    databricks --> search
+    next <--> fastapi
+    fastapi <--> search
+    fastapi <--> foundry
 ```
 
 ## Key Features
@@ -266,9 +276,6 @@ Designed for enterprise environments where data privacy and compliance are non-n
 - Encryption at rest and in transit (TLS 1.2+)
 - Input validation on all API endpoints via Pydantic
 - On-demand document access via short-lived SAS tokens — no permanent public URLs. When viewing a cited document, the app generates a read-only Azure Blob Storage SAS URL scoped to that specific blob, valid for one hour. Expired tokens are never stored.
-
-<!-- TODO: Add architecture diagram -->
-<!-- ![Architecture Diagram](docs/assets/architecture.png) -->
 
 ## License
 
