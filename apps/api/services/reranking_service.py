@@ -15,7 +15,7 @@ RERANK_SYSTEM_PROMPT = """Rank these chunks by relevance to the query. Return ON
 
 Example output: 3,1,7,2"""
 
-MAX_CHUNK_CHARS = 300
+MAX_CHUNK_CHARS = 2000
 
 
 def rerank_chunks(
@@ -42,7 +42,7 @@ def rerank_chunks(
         text = chunk.content[:MAX_CHUNK_CHARS]
         if len(chunk.content) > MAX_CHUNK_CHARS:
             text += "..."
-        chunk_lines.append(f"[{i}] {text}")
+        chunk_lines.append(f"[{i}] (Source: {chunk.document_name}, p.{chunk.page_number}) {text}")
 
     chunks_text = "\n\n".join(chunk_lines)
 

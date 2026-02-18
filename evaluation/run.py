@@ -26,7 +26,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-import httpx
+import requests
 from azure.ai.inference import ChatCompletionsClient
 from azure.ai.inference.models import SystemMessage, UserMessage
 from azure.identity import DefaultAzureCredential
@@ -147,7 +147,7 @@ def judge_response(
 
 
 def run_question(
-    http_client: httpx.Client,
+    session: requests.Session,
     api_url: str,
     org_id: str,
     folder_id: str,
@@ -163,10 +163,10 @@ def run_question(
         **config_overrides,
     }
 
-    response = http_client.post(
+    response = session.post(
         f"{api_url}/api/v1/chat/query",
         json=payload,
-        timeout=120.0,
+        timeout=120,
     )
     response.raise_for_status()
     return response.json()
@@ -248,7 +248,7 @@ def main():
     # Set up clients
     env = load_env()
     judge_client = get_judge_client(env)
-    http_client = httpx.Client()
+    http_client = requests.Session()
 
     results = []
     total_calls = len(CONFIGS) * len(questions)
@@ -308,8 +308,8 @@ def main():
                     "scores": scores,
                 }
 
-            except httpx.HTTPStatusError as e:
-                print(f"HTTP error: {e.response.status_code}")
+            except requests.HTTPError as e:
+                print(f"HTTP error: {e.response.status_code if e.response else 'unknown'}")
                 q_result["configs"][cfg_name] = {"error": str(e)}
             except Exception as e:
                 print(f"Error: {e}")
