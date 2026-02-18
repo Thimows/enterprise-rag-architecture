@@ -21,8 +21,7 @@ class ChatRequest(BaseModel):
     conversation_history: list[ConversationMessage] = Field(default_factory=list)
     filters: ChatFilters = Field(default_factory=ChatFilters)
     top_k: int = 10
-    # Per-request overrides for evaluation — None means use server defaults
-    use_custom_reranker: Optional[bool] = None
+    # Per-request override for evaluation — None means use server default (semantic on)
     use_semantic_search: Optional[bool] = None
 
 
@@ -72,7 +71,6 @@ class TimingBreakdown(BaseModel):
     rewrite_ms: float = 0
     embed_ms: float = 0
     search_ms: float = 0
-    rerank_ms: float = 0
     generation_ms: float = 0
     total_ms: float = 0
 

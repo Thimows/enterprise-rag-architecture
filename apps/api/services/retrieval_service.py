@@ -31,7 +31,7 @@ def hybrid_search(
     Always filters by organization_id. Optionally filters by folder_ids and document_names.
     """
     if top_k is None:
-        top_k = settings.SEARCH_TOP_K
+        top_k = settings.CONTEXT_TOP_K
 
     client = get_search_client()
 

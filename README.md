@@ -12,7 +12,7 @@ Users upload internal documents (PDF, Word, TXT) which get parsed, chunked and e
 
 The entire infrastructure is provisioned through Terraform in a single `terraform apply` -Azure AI Foundry (three model deployments), Azure AI Search (hybrid index with vector + keyword + semantic ranking), Azure Databricks (ingestion pipeline), Azure PostgreSQL (auth, chat history, document metadata), Azure Blob Storage (document store), and Azure Document Intelligence (PDF/DOCX parsing). An interactive setup script handles everything from provisioning to environment configuration, database schema push, search index creation, and Databricks bundle deployment.
 
-The retrieval pipeline uses a custom query rewriter (GPT-5 Nano) that turns follow-up questions into standalone search queries and classifies conversational messages to skip retrieval entirely. Retrieved chunks pass through a two-stage funnel: hybrid search (vector + keyword + semantic) fetches 50 candidates, then an optional LLM-based reranker narrows to the top 10. Both the custom reranker and Azure's built-in semantic ranker can be independently toggled on or off, making it easy to benchmark different retrieval configurations.
+The retrieval pipeline uses a custom query rewriter (GPT-5 Nano) that turns follow-up questions into standalone search queries and classifies conversational messages to skip retrieval entirely. Retrieval uses hybrid search (vector + keyword + RRF fusion) with Azure's semantic ranker for reranking. The semantic ranker internally reranks the top 50 candidates and returns the best `CONTEXT_TOP_K` (default 10) results for generation. The semantic ranker can be toggled on or off per request, making it easy to benchmark its impact on retrieval quality and latency.
 
 Every answer includes numbered citation bubbles that link back to the exact source. Hovering a citation highlights the relevant text and shows a tooltip with the source document and page. Clicking opens an inline artifact panel with the document viewer scrolled to the cited passage. Multi-tenant workspaces keep documents, search results and chat history scoped per organization.
 
@@ -38,7 +38,7 @@ flowchart TB
 
         subgraph application ["Application Layer"]
             next["Next.js<br>chat UI · streaming · citations"]
-            fastapi["FastAPI<br>query rewrite · reranking · generation"]
+            fastapi["FastAPI<br>query rewrite · retrieval · generation"]
             pg[("Azure PostgreSQL<br>auth · chat history · documents")]
         end
     end
@@ -68,8 +68,7 @@ flowchart TB
 - Document parsing via Azure Document Intelligence with layout analysis
 - Custom chunking strategies (see below) -no dependency on Azure's built-in indexer pipeline, giving you full control over chunk size, overlap and splitting logic
 - Hybrid search combining vector, keyword and semantic ranking with RRF fusion
-- Two-stage retrieval funnel: fetches 50 candidates via hybrid search, reranks to the top 10, then passes only those to generation -configurable via `SEARCH_TOP_K` and `CONTEXT_TOP_K`
-- Optional LLM-based reranking via GPT-5 Nano (benchmarkable against Azure's built-in semantic ranker)
+- Hybrid search returns `CONTEXT_TOP_K` results (default 10) - Azure's semantic ranker (cross-encoder) always reranks the top 50 internally, so the results you get back are already the best reranked matches
 - Per-query folder filtering -users can scope retrieval to specific folders or search across all folders, directly from the chat input
 - Answer generation strictly grounded in retrieved context to reduce hallucination
 - All blocking Azure SDK calls wrapped in `asyncio.to_thread()` -the ASGI event loop never blocks, keeping concurrent requests responsive
@@ -162,7 +161,7 @@ chat_model_format = "OpenAI"
 chat_model_name   = "gpt-5.2-chat"
 ```
 
-Query rewriting uses **GPT-5 Nano** (OpenAI via Azure) with `reasoning_effort: low` for ultra-fast, low-latency inference. This lightweight model serves a dual purpose: it rewrites follow-up questions into standalone retrieval queries using conversation history, and it classifies user intent -detecting conversational messages (thanks, greetings, acknowledgements) so the RAG pipeline is skipped entirely. This avoids unnecessary embedding, search and reranking calls for non-retrieval messages, resulting in faster responses and more natural conversation flow.
+Query rewriting uses **GPT-5 Nano** (OpenAI via Azure) with `reasoning_effort: low` for ultra-fast, low-latency inference. This lightweight model serves a dual purpose: it rewrites follow-up questions into standalone retrieval queries using conversation history, and it classifies user intent -detecting conversational messages (thanks, greetings, acknowledgements) so the RAG pipeline is skipped entirely. This avoids unnecessary embedding and search calls for non-retrieval messages, resulting in faster responses and more natural conversation flow.
 
 Embeddings use **text-embedding-3-large** (OpenAI via Azure), which is also Direct from Azure.
 
@@ -171,7 +170,7 @@ Embeddings use **text-embedding-3-large** (OpenAI via Azure), which is also Dire
 ```
 enterprise-rag-architecture/
   apps/
-    api/          FastAPI backend (retrieval, reranking, generation, streaming)
+    api/          FastAPI backend (retrieval, generation, streaming)
     web/          Next.js frontend (chat UI, citations, artifact panel)
   packages/
     ui/           Shared React components

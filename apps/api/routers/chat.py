@@ -7,7 +7,6 @@ import time
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 
-from config.settings import settings
 from models.chat_models import (
     ChatQueryResponse,
     ChatRequest,
@@ -16,7 +15,6 @@ from models.chat_models import (
 )
 from services.generation_service import generate_answer, generate_answer_streaming
 from services.query_service import rewrite_query
-from services.reranking_service import rerank_chunks
 from services.retrieval_service import embed_query, hybrid_search
 
 logger = logging.getLogger(__name__)
@@ -48,9 +46,8 @@ async def chat_stream(request: ChatRequest):
             headers=SSE_HEADERS,
         )
 
-    # Resolve per-request overrides (fall back to server defaults)
+    # Resolve per-request semantic search override
     use_semantic = request.use_semantic_search if request.use_semantic_search is not None else True
-    use_reranking = request.use_custom_reranker if request.use_custom_reranker is not None else settings.RERANKING_ENABLED
 
     # 3. Embed + search
     query_vector = await asyncio.to_thread(embed_query, rewritten_query)
@@ -62,23 +59,13 @@ async def chat_stream(request: ChatRequest):
         rewritten_query,
         query_vector,
         request.organization_id,
-        settings.SEARCH_TOP_K,
+        request.top_k,
         request.filters.folder_ids or None,
         request.filters.document_names or None,
         use_semantic,
     )
     t_search = time.perf_counter()
     logger.info("[TIMING] hybrid search: %.2fs (%d chunks)", t_search - t_embed, len(chunks))
-
-    # 4. Rerank if enabled (and we have results)
-    if chunks and use_reranking:
-        chunks = await asyncio.to_thread(
-            rerank_chunks, rewritten_query, chunks, request.top_k
-        )
-        t_rerank = time.perf_counter()
-        logger.info("[TIMING] rerank: %.2fs", t_rerank - t_search)
-    elif chunks:
-        chunks = chunks[: request.top_k]
 
     t_total = time.perf_counter()
     logger.info("[TIMING] total before streaming: %.2fs", t_total - t_start)
@@ -105,9 +92,8 @@ async def chat_query(request: ChatRequest):
     t_rewrite = time.perf_counter()
     logger.info("[TIMING] rewrite: %.2fs (conversational=%s)", t_rewrite - t_start, is_conversational)
 
-    # Resolve per-request overrides (fall back to server defaults)
+    # Resolve per-request semantic search override
     use_semantic = request.use_semantic_search if request.use_semantic_search is not None else True
-    use_reranking = request.use_custom_reranker if request.use_custom_reranker is not None else settings.RERANKING_ENABLED
 
     timing = TimingBreakdown(rewrite_ms=round((t_rewrite - t_start) * 1000, 1))
 
@@ -125,7 +111,7 @@ async def chat_query(request: ChatRequest):
             rewritten_query,
             query_vector,
             request.organization_id,
-            settings.SEARCH_TOP_K,
+            request.top_k,
             request.filters.folder_ids or None,
             request.filters.document_names or None,
             use_semantic,
@@ -133,17 +119,6 @@ async def chat_query(request: ChatRequest):
         t_search = time.perf_counter()
         timing.search_ms = round((t_search - t_embed) * 1000, 1)
         logger.info("[TIMING] hybrid search: %.2fs (%d chunks)", t_search - t_embed, len(chunks))
-
-        # 4. Rerank if enabled (and we have results)
-        if chunks and use_reranking:
-            chunks = await asyncio.to_thread(
-                rerank_chunks, rewritten_query, chunks, request.top_k
-            )
-            t_rerank = time.perf_counter()
-            timing.rerank_ms = round((t_rerank - t_search) * 1000, 1)
-            logger.info("[TIMING] rerank: %.2fs", t_rerank - t_search)
-        elif chunks:
-            chunks = chunks[: request.top_k]
 
     # 5. Generate answer
     query_for_gen = request.query if is_conversational else rewritten_query

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """RAG Evaluation Runner
 
-Runs each test question against 4 reranker configurations sequentially,
-scores responses with an LLM judge (Mistral Large 3), and saves
-timestamped results to evaluation/results/.
+Runs each test question against 2 retrieval configurations (baseline vs semantic
+ranker) sequentially, scores responses with an LLM judge (Mistral Large 3),
+and saves timestamped results to evaluation/results/.
 
 Usage:
     uv run --project evaluation evaluation/run.py \
@@ -37,10 +37,8 @@ from dotenv import dotenv_values
 # ---------------------------------------------------------------------------
 
 CONFIGS = [
-    ("baseline", {"use_custom_reranker": False, "use_semantic_search": False}),
-    ("azure_only", {"use_custom_reranker": False, "use_semantic_search": True}),
-    ("custom_only", {"use_custom_reranker": True, "use_semantic_search": False}),
-    ("both", {"use_custom_reranker": True, "use_semantic_search": True}),
+    ("baseline", {"use_semantic_search": False}),
+    ("semantic", {"use_semantic_search": True}),
 ]
 
 JUDGE_SYSTEM_PROMPT = """You are an evaluation judge for a RAG (Retrieval-Augmented Generation) system.

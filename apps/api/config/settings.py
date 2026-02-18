@@ -28,9 +28,7 @@ class Settings(BaseSettings):
     DATABRICKS_JOB_ID: int = 0
 
     # RAG Pipeline
-    RERANKING_ENABLED: bool = True
     MAX_HISTORY_TURNS: int = 10
-    SEARCH_TOP_K: int = 50
     CONTEXT_TOP_K: int = 10
 
 
