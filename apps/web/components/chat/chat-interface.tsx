@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect, useRef } from "react"
 import { trpc } from "@/lib/trpc/client"
 import { useStreamingChat } from "@/hooks/use-streaming-chat"
 import { MessageList } from "@/components/chat/message-list"
@@ -16,6 +16,7 @@ interface ChatInterfaceProps {
   initialMessages?: ChatMessage[]
   initialCitations?: Citation[]
   onFirstMessage?: (message: string) => void
+  pendingMessage?: string
 }
 
 export function ChatInterface({
@@ -24,6 +25,7 @@ export function ChatInterface({
   initialMessages = [],
   initialCitations = [],
   onFirstMessage,
+  pendingMessage,
 }: ChatInterfaceProps) {
   const addMessage = trpc.chat.addMessage.useMutation()
 
@@ -74,6 +76,7 @@ export function ChatInterface({
 
   const [hoveredCitation, setHoveredCitation] = useState<Citation | null>(null)
   const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null)
+  const pendingSent = useRef(false)
 
   // Initialize with existing messages
   if (initialMessages.length > 0 && messages.length === 0) {
@@ -81,9 +84,18 @@ export function ChatInterface({
     setCitations(initialCitations)
   }
 
+  // Auto-send pending message from new chat creation
+  useEffect(() => {
+    if (pendingMessage && !pendingSent.current) {
+      pendingSent.current = true
+      sendMessage(pendingMessage)
+    }
+  }, [pendingMessage, sendMessage])
+
   function handleSend(query: string) {
     if (messages.length === 0 && onFirstMessage) {
       onFirstMessage(query)
+      return // Don't stream here — the chat page will handle it after navigation
     }
     sendMessage(query)
   }

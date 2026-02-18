@@ -32,7 +32,8 @@ export function NewChatPage() {
     await createChat.mutateAsync({ id: chatId, title })
     utils.chat.list.invalidate()
 
-    router.replace(`/chat/${chatId}`)
+    // Navigate with the pending message so ChatView can send it after mounting
+    router.replace(`/chat/${chatId}?q=${encodeURIComponent(message)}`)
   }
 
   return (

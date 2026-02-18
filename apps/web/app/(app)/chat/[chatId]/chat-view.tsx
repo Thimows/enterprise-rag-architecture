@@ -4,7 +4,7 @@ import { trpc } from "@/lib/trpc/client"
 import { ChatInterface } from "@/components/chat/chat-interface"
 import { Skeleton } from "@/components/ui/skeleton"
 
-export function ChatView({ chatId }: { chatId: string }) {
+export function ChatView({ chatId, pendingMessage }: { chatId: string; pendingMessage?: string }) {
   const { data, isPending } = trpc.chat.getMessages.useQuery({ chatId })
 
   if (isPending) {
@@ -34,6 +34,7 @@ export function ChatView({ chatId }: { chatId: string }) {
         ...c,
         documentUrl: "",
       }))}
+      pendingMessage={pendingMessage}
     />
   )
 }
