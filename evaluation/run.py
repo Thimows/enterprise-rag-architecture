@@ -225,7 +225,7 @@ def main():
     parser.add_argument("--folder-id", default="", help="Folder ID to scope retrieval (optional)")
     parser.add_argument("--api-url", default="http://localhost:4001", help="API base URL")
     parser.add_argument("--test-set", default="evaluation/test_set.json", help="Path to test set JSON")
-    parser.add_argument("--delay", type=int, default=3, help="Seconds to wait between API calls (rate limit avoidance)")
+    parser.add_argument("--delay", type=int, default=5, help="Seconds to wait between API calls (rate limit avoidance)")
     args = parser.parse_args()
 
     # Load test set

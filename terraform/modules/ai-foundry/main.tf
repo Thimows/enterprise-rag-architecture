@@ -23,7 +23,7 @@ resource "azurerm_cognitive_deployment" "chat" {
 
   sku {
     name     = "GlobalStandard"
-    capacity = 20
+    capacity = var.chat_capacity
   }
 }
 
@@ -41,7 +41,7 @@ resource "azurerm_cognitive_deployment" "rewrite" {
 
   sku {
     name     = "GlobalStandard"
-    capacity = 30
+    capacity = var.rewrite_capacity
   }
 }
 

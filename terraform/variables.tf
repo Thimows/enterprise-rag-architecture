@@ -15,10 +15,22 @@ variable "embedding_model_name" {
   default     = "text-embedding-3-large"
 }
 
-variable "embedding_capacity" {
-  description = "Embedding model capacity in thousands of tokens per minute (e.g. 50 = 50K TPM)"
+variable "chat_capacity" {
+  description = "Chat model capacity in thousands of tokens per minute (e.g. 20 = 20K TPM)"
   type        = number
-  default     = 50
+  default     = 20
+}
+
+variable "rewrite_capacity" {
+  description = "Rewrite model capacity in thousands of tokens per minute (e.g. 30 = 30K TPM)"
+  type        = number
+  default     = 30
+}
+
+variable "embedding_capacity" {
+  description = "Embedding model capacity in thousands of tokens per minute (e.g. 350 = 350K TPM)"
+  type        = number
+  default     = 350
 }
 
 variable "search_service_sku" {

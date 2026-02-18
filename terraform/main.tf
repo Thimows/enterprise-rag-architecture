@@ -13,6 +13,8 @@ module "ai_foundry" {
   resource_group_name  = azurerm_resource_group.main.name
   location             = azurerm_resource_group.main.location
   project_prefix       = "${var.project_prefix}-${random_id.suffix.hex}"
+  chat_capacity        = var.chat_capacity
+  rewrite_capacity     = var.rewrite_capacity
   embedding_model_name = var.embedding_model_name
   embedding_capacity   = var.embedding_capacity
 }
