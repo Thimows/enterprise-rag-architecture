@@ -9,6 +9,10 @@ import * as schema from "./db/schema"
 export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", schema }),
   emailAndPassword: { enabled: true },
+  session: {
+    expiresIn: 60 * 60 * 24 * 7, // 7 days
+    updateAge: 60 * 60 * 24, // refresh token every 24 hours
+  },
   databaseHooks: {
     session: {
       create: {
