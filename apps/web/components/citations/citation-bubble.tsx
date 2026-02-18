@@ -1,5 +1,6 @@
 "use client"
 
+import { useCallback } from "react"
 import {
   FileText,
   FileSpreadsheet,
@@ -35,16 +36,40 @@ function FileIcon({ name, fileType }: { name: string; fileType?: string }) {
   return <File className="size-3.5 shrink-0 text-muted-foreground" />
 }
 
+const BLOCK_TAGS = new Set(["P", "LI", "BLOCKQUOTE", "TD", "H1", "H2", "H3", "H4", "H5", "H6", "DIV"])
+const HIGHLIGHT_CLASS = "citation-highlight"
+
+function findBlockParent(el: HTMLElement): HTMLElement | null {
+  let node = el.parentElement
+  while (node) {
+    if (BLOCK_TAGS.has(node.tagName)) return node
+    node = node.parentElement
+  }
+  return null
+}
+
 export function CitationBubble({
   number,
   citation,
   onClick,
 }: CitationBubbleProps) {
+  const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    const block = findBlockParent(e.currentTarget)
+    block?.classList.add(HIGHLIGHT_CLASS)
+  }, [])
+
+  const handleMouseLeave = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    const block = findBlockParent(e.currentTarget)
+    block?.classList.remove(HIGHLIGHT_CLASS)
+  }, [])
+
   const bubble = (
     <button
       type="button"
       className="citation-bubble mx-0.5 inline-flex size-5 cursor-pointer items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary transition-colors hover:bg-primary/20"
       onClick={() => citation && onClick?.(citation)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
     >
       {number}
     </button>

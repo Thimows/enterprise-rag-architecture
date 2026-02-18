@@ -125,12 +125,12 @@
     }
 }
 
-/* Highlight the paragraph containing a hovered citation bubble */
-p:has(> .citation-bubble:hover) {
+/* Highlight the block containing a hovered citation bubble */
+.citation-highlight {
   background-color: oklch(0.65 0.2 260 / 10%);
   border-radius: var(--radius-sm);
   transition: background-color 150ms;
 }
-.dark p:has(> .citation-bubble:hover) {
+.dark .citation-highlight {
   background-color: oklch(0.65 0.2 260 / 15%);
 }
