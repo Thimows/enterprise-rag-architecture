@@ -668,7 +668,7 @@ organization ──N:N──> user (via member)          document <──┘
 | FastAPI scaffold | ✅ Done | App entry with CORS, Pydantic settings, Azure SDK client factories, routers (health, chat, documents) under `/api/v1`, `.env.example` |
 | Next.js scaffold | ✅ Done | Tailwind CSS v4 with `@tailwindcss/postcss`, chat layout skeleton with header/message area/input bar, dark mode support, `.env.example` |
 
-**Deliverables**: All Azure resources defined in Terraform, `npm run dev` starts both apps, `/api/v1/health` endpoint returns `{"status": "healthy"}`, basic chat UI shell at `localhost:3000`
+**Deliverables**: All Azure resources defined in Terraform, `npm run dev` starts both apps, `/api/v1/health` endpoint returns `{"status": "healthy"}`, basic chat UI shell at `localhost:4000`
 
 ---
 
@@ -732,7 +732,26 @@ organization ──N:N──> user (via member)          document <──┘
 
 ---
 
-### Phase 4: Frontend
+### Phase 4A: Database, Auth & Foundations ✅ COMPLETE
+
+**Goal**: Set up Drizzle ORM, BetterAuth (with organization plugin), database schema, and migrations
+
+| Task | Status | Details |
+|------|--------|---------|
+| Drizzle ORM setup | ✅ Done | `drizzle-orm`, `pg`, `drizzle-kit`. `lib/db/index.ts` (Drizzle client), `lib/db/schema/index.ts` (barrel export), `drizzle.config.ts` |
+| BetterAuth config | ✅ Done | `lib/auth.ts` (server config with Drizzle adapter + organization plugin + nextCookies), `lib/auth-client.ts` (client with organizationClient), `app/api/auth/[...all]/route.ts` (catch-all handler) |
+| Auth schema generation | ✅ Done | `npx @better-auth/cli generate` → `lib/db/schema/auth.ts` with user, session, account, verification, organization, member, invitation tables + Drizzle relations |
+| Application schema | ✅ Done | `lib/db/schema/app.ts` with folder, document, chat, message, citation tables (UUIDv7 PKs, organization-scoped, with Drizzle relations) |
+| setup.sh migration step | ✅ Done | Added `drizzle-kit push` as Step 3/6 after `.env` generation, before search index creation. Also generates `BETTER_AUTH_SECRET` |
+| Auth pages | ✅ Done | `app/(auth)/sign-in/page.tsx`, `app/(auth)/sign-up/page.tsx`, `app/(auth)/layout.tsx` — email/password forms with auto-org creation on sign-up |
+| Path aliases | ✅ Done | `@/*` path alias in `tsconfig.json` |
+| Environment variables | ✅ Done | `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `DATABASE_URL` in `.env.example` and auto-generated in `setup.sh` |
+
+**Deliverables**: Working auth flow (sign-up, sign-in, organization creation), all database tables defined, `drizzle-kit push` in setup script, middleware route protection
+
+---
+
+### Phase 4B: Frontend UI ✅ COMPLETE
 
 **Goal**: Clean, modern chat interface with streaming, citations, and document management
 
@@ -740,56 +759,62 @@ organization ──N:N──> user (via member)          document <──┘
 - All UI primitives **must use shadcn/ui components** -- never hardcode HTML elements for buttons, inputs, cards, dialogs, sidebars, tooltips, etc.
 - **Neutral color scheme** via Tailwind CSS variables, with full light and dark mode support
 - Clean, minimal aesthetic -- no visual clutter
+- Organization context from BetterAuth (`useSession` + `useActiveOrganization`)
+- Chat/folder persistence via Drizzle (PostgreSQL)
 
 **Sidebar** (shadcn `Sidebar` primitive):
 
 The sidebar is the primary navigation element, always visible on the left:
 
-1. **Workspace switcher** (top) -- Switch between organizations. Dropdown at the top of the sidebar
+1. **Workspace switcher** (top) -- Switch between organizations via BetterAuth `useListOrganizations` + `organization.setActive()`
 2. **New chat button** -- Creates a new chat session, prominent placement below the switcher
 3. **File explorer button** -- Navigates to a dedicated page showing folders and files in shadcn `Table` components. Folders are expandable; files show name, type, size, status. Upload happens from this page
-4. **Chat history list** -- Scrollable list of previous chat sessions, sorted by most recent. Shows chat title (auto-generated from first message). Clicking opens that chat
+4. **Chat history list** -- Scrollable list of previous chat sessions from DB, sorted by most recent. Shows chat title (auto-generated from first message). Clicking opens that chat
+5. **Footer** -- User menu (avatar + name from `useSession`), theme toggle
 
 **Sidebar Layout**:
 ```
 ┌─────────────────────┐
-│  [Workspace ▾]      │  ← Organization switcher
+│  [Workspace ▾]      │  ← Organization switcher (BetterAuth)
 ├─────────────────────┤
 │  [+ New Chat]       │  ← New chat button
-│  [📁 Files]          │  ← File explorer (navigates to /files page)
+│  [Files]            │  ← File explorer (navigates to /files page)
 ├─────────────────────┤
 │  Chat History       │
 │  ┌─────────────────┐│
-│  │ Safety regs...  ││  ← Most recent
+│  │ Safety regs...  ││  ← Most recent (from DB)
 │  │ Chemical stor.. ││
 │  │ Warehouse FAQ   ││
 │  │ ...             ││
 │  └─────────────────┘│
+├─────────────────────┤
+│  [User ▾] [Theme]   │  ← User menu + dark mode toggle
 └─────────────────────┘
 ```
 
 **File Explorer Page** (`/files`):
-- Folder list with create/rename/delete actions
+- Folder list with create/rename/delete actions (Drizzle CRUD)
 - Click folder to see its documents in a shadcn `Table` (name, type, size, status, uploaded date)
-- Upload button per folder (drag-and-drop or file picker)
+- Upload button per folder (drag-and-drop or file picker, calls FastAPI upload)
 - Document status badges: uploading → processing → indexed / failed
 
-| Task | Details |
-|------|---------|
-| shadcn/ui setup | Install shadcn/ui (neutral theme), add base components: Button, Input, Card, Dialog, Sidebar, Tooltip, ScrollArea, Separator, Table, DropdownMenu, Badge, Sheet, etc. |
-| Sidebar | shadcn `Sidebar` with workspace switcher (DropdownMenu), new chat button, file explorer link, and chat history list (ScrollArea). Collapsible on mobile |
-| Chat interface | ChatInterface, MessageList, MessageInput (shadcn Input + Button), auto-scroll (ScrollArea), loading states, empty state for new chats |
-| Streaming | Vercel Streamdown integration, SSE from FastAPI, incremental markdown rendering |
-| Citation bubbles | Parse `[1]` from markdown, render inline bubbles. **Hover**: highlight chunk in sources pane + show Tooltip (source name, page). **Click**: open artifact panel |
-| Sources pane | Below answer showing source chunks in Cards with document name, page number. Highlights active chunk on citation hover |
-| Artifact panel | Slide-in panel (Sheet) from right on citation click. Contains DocumentViewer loaded to the correct page with cited passage highlighted |
-| Document viewer | PDF.js integration with highlight overlay. Fuzzy match chunk text against rendered page text to locate and highlight the cited passage |
-| Fuzzy text matching | Match chunk text against PDF.js text layer on the target page to find exact highlight position. Works uniformly across PDF, Word, and TXT |
-| File explorer page | `/files` route with folder list and document table (shadcn Table). Upload button, status badges, folder CRUD |
-| Dark mode | Neutral color scheme in CSS variables, toggle in sidebar or header, respects system preference |
-| UI polish | Responsive design, streaming animations, error states, smooth panel transitions -- all built on shadcn/ui primitives |
+| Task | Status | Details |
+|------|--------|---------|
+| shadcn/ui setup | ✅ Done | Initialized shadcn/ui (neutral, new-york), installed 16 components: Button, Input, Textarea, Card, Dialog, Sidebar, Tooltip, ScrollArea, Separator, Table, DropdownMenu, Badge, Sheet, Skeleton, Avatar, use-mobile hook |
+| Theme + layout | ✅ Done | `next-themes` ThemeProvider, neutral Tailwind v4 CSS variables (`:root` + `.dark`), `@theme inline` block with sidebar vars. Route groups: `(auth)/` for sign-in/up, `(app)/` for sidebar layout |
+| Sidebar | ✅ Done | shadcn Sidebar with workspace switcher (BetterAuth orgs), new chat button, files link, chat history list (DB-backed), user menu + theme toggle in footer. Responsive mobile overlay |
+| API client + types | ✅ Done | `lib/types.ts` mirroring FastAPI models. `lib/api-client.ts` with `streamChat()` async generator, `uploadDocument()`, `listDocuments()` |
+| Chat interface | ✅ Done | ChatInterface, MessageList, MessageBubble, MessageInput (Textarea + Button), auto-scroll, empty state. Chat persisted to DB via API routes (chats, messages) |
+| Streaming | ✅ Done | `useStreamingChat` hook (SSE with AbortController, message persistence). Citation-aware `StreamingMessage` with blinking cursor |
+| Citation bubbles | ✅ Done | Inline `[N]` parsed from content, rendered as CitationBubble with Tooltip (doc name, page, chunk preview). Click opens artifact panel |
+| Sources pane | ✅ Done | Horizontal scroll of source Cards below answer. Highlights active chunk on citation hover |
+| Artifact panel | ✅ Done | Sheet slide-in from right on citation click. Shows doc name, page, relevance score, chunk text. Full PDF deferred to Phase 5 |
+| File explorer page | ✅ Done | `/files` route with folder sidebar + document table. FolderCreateDialog, UploadButton, DocumentTable with status badges. API routes for CRUD |
+| Dark mode | ✅ Done | Neutral color scheme in CSS variables, toggle in sidebar footer, respects system preference via `next-themes` |
+| Route protection | ✅ Done | Middleware redirects to `/sign-in` if no session cookie. Server-side session check in app layout |
+| Polish | ✅ Done | Loading skeletons, smooth panel transitions, streaming cursor animation, responsive sidebar |
 
-**Deliverables**: Fully functional chat with sidebar navigation, workspace switching, file management, real-time streaming, citation hover tooltips, sources pane, and artifact panel with PDF viewer + text highlighting. All UI built on shadcn/ui with neutral theme in light/dark mode.
+**Deliverables**: Fully functional chat with sidebar navigation, workspace switching (BetterAuth), file management, real-time streaming, citation hover tooltips, sources pane, and artifact panel. Chat history and folders persisted in PostgreSQL. All UI built on shadcn/ui with neutral theme in light/dark mode.
 
 ---
 
@@ -1143,8 +1168,8 @@ npm install
 
 # 3. Start development (runs both API and web server)
 npm run dev
-# FastAPI  -> http://localhost:8000
-# Next.js  -> http://localhost:3000
+# FastAPI  -> http://localhost:4001
+# Next.js  -> http://localhost:4000
 ```
 
 The setup script handles everything in one command: Terraform provisioning (all Azure resources including Databricks workspace and PostgreSQL), `.env` file generation from Terraform outputs, database migration via `drizzle-kit push` (creates all tables), Azure AI Search index creation, Databricks secrets configuration (via Azure CLI token), and bundle deployment. It is idempotent and safe to re-run.

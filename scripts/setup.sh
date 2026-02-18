@@ -59,8 +59,19 @@ else
   err "Log in to Azure, then re-run this script."
 fi
 
+# ─── Step 0: Install dependencies ──────────────────────────────────
+info "Installing dependencies..."
+
+cd "$ROOT_DIR"
+npm install
+ok "Node.js dependencies installed"
+
+cd "$ROOT_DIR/apps/api"
+uv sync --prerelease=allow
+ok "Python dependencies installed"
+
 # ─── Step 1: Terraform ──────────────────────────────────────────────
-info "Step 1/5 — Provisioning Azure resources with Terraform..."
+info "Step 1/6 — Provisioning Azure resources with Terraform..."
 
 cd "$ROOT_DIR/terraform"
 
@@ -97,7 +108,7 @@ get_output() {
 }
 
 # ─── Step 2: Generate .env files from Terraform outputs ─────────────
-info "Step 2/5 — Generating .env files from Terraform outputs..."
+info "Step 2/6 — Generating .env files from Terraform outputs..."
 
 # apps/api/.env
 cat > "$ROOT_DIR/apps/api/.env" <<EOF
@@ -117,29 +128,39 @@ AZURE_STORAGE_CONTAINER_NAME=documents
 AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=$(get_output document_intelligence_endpoint)
 AZURE_DOCUMENT_INTELLIGENCE_KEY=$(get_output document_intelligence_key)
 
-CORS_ORIGINS=["http://localhost:3000"]
+CORS_ORIGINS=["http://localhost:4000"]
 
 DATABASE_URL=postgresql://$(get_output postgresql_user):$(get_output postgresql_password)@$(get_output postgresql_host):5432/$(get_output postgresql_database)?sslmode=require
 EOF
 ok "Created apps/api/.env"
 
 # apps/web/.env.local
+BETTER_AUTH_SECRET=$(openssl rand -hex 32)
 cat > "$ROOT_DIR/apps/web/.env.local" <<EOF
-NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_API_URL=http://localhost:4001/api/v1
 DATABASE_URL=postgresql://$(get_output postgresql_user):$(get_output postgresql_password)@$(get_output postgresql_host):5432/$(get_output postgresql_database)?sslmode=require
+BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+BETTER_AUTH_URL=http://localhost:4000
 EOF
 ok "Created apps/web/.env.local"
 
-# ─── Step 3: Create search index ──────────────────────────────────
-info "Step 3/5 — Creating Azure AI Search index..."
+# ─── Step 3: Push database schema ─────────────────────────────────
+info "Step 3/6 — Pushing database schema..."
+cd "$ROOT_DIR/apps/web"
+DB_URL="postgresql://$(get_output postgresql_user):$(get_output postgresql_password)@$(get_output postgresql_host):5432/$(get_output postgresql_database)?sslmode=require"
+DATABASE_URL="$DB_URL" npx drizzle-kit push < /dev/null
+ok "Database schema up to date"
+
+# ─── Step 4: Create search index ──────────────────────────────────
+info "Step 4/6 — Creating Azure AI Search index..."
 
 cd "$ROOT_DIR/apps/api"
 uv run python scripts/create_search_index.py
 ok "Search index created/updated"
 
-# ─── Step 4: Databricks secrets ─────────────────────────────────────
+# ─── Step 5: Databricks secrets ─────────────────────────────────────
 cd "$ROOT_DIR/terraform"
-info "Step 4/5 — Configuring Databricks secrets (writing 10 secrets)..."
+info "Step 5/6 — Configuring Databricks secrets (writing 10 secrets)..."
 
 # Authenticate Databricks CLI using the Azure-managed workspace
 DATABRICKS_HOST=$(get_output databricks_workspace_url)
@@ -174,8 +195,8 @@ put_secret "document-intelligence-key"          "$(get_output document_intellige
 
 ok "All 10 secrets configured"
 
-# ─── Step 4: Deploy Databricks bundle ───────────────────────────────
-info "Step 5/5 — Deploying Databricks bundle (this can take a minute)..."
+# ─── Step 6: Deploy Databricks bundle ───────────────────────────────
+info "Step 6/6 — Deploying Databricks bundle (this can take a minute)..."
 
 cd "$ROOT_DIR/databricks"
 databricks bundle deploy --target dev
@@ -189,10 +210,10 @@ echo ""
 echo "  Start development:"
 echo "    npm run dev"
 echo ""
-echo "  FastAPI  → http://localhost:8000"
-echo "  Next.js  → http://localhost:3000"
-echo "  API docs → http://localhost:8000/docs"
+echo "  FastAPI  → http://localhost:4001"
+echo "  Next.js  → http://localhost:4000"
+echo "  API docs → http://localhost:4001/docs"
 echo ""
-echo "  Upload documents through the web UI at http://localhost:3000"
+echo "  Upload documents through the web UI at http://localhost:4000"
 echo "  The ingestion pipeline runs automatically via Azure Databricks."
 echo ""

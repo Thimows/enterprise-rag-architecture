@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT: str = ""
     AZURE_DOCUMENT_INTELLIGENCE_KEY: str = ""
 
-    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+    CORS_ORIGINS: list[str] = ["http://localhost:4000"]
 
     DATABASE_URL: str = ""
 

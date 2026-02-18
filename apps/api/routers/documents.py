@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Optional
+
 from fastapi import APIRouter, Form, HTTPException, Query, UploadFile
 
 from config.settings import settings
@@ -64,7 +66,7 @@ async def upload_document(
 @router.get("", response_model=DocumentListResponse)
 async def list_documents(
     organization_id: str = Query(...),
-    folder_id: str | None = Query(default=None),
+    folder_id: Optional[str] = Query(default=None),
 ):
     """List documents in the storage container, filtered by organization and optionally by folder."""
     blob_service = get_blob_service_client()

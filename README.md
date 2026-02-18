@@ -175,7 +175,7 @@ npm run dev
 
 The setup script handles everything: Terraform provisioning, `.env` file generation from Terraform outputs, search index creation, Databricks secrets configuration and bundle deployment. It's idempotent and safe to re-run anytime.
 
-The FastAPI server starts at `http://localhost:8000` and the Next.js app at `http://localhost:3000`.
+The FastAPI server starts at `http://localhost:4001` and the Next.js app at `http://localhost:4000`.
 
 ## Security
 
