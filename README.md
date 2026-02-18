@@ -2,7 +2,7 @@
 
 A production-grade Retrieval-Augmented Generation system built for enterprise environments. Uses Azure AI Foundry (Mistral Large 3 for answer generation, GPT-5 Nano for query rewriting, text-embedding-3-large for embeddings), Azure AI Search for hybrid retrieval and Azure Databricks for automated document ingestion and chunking workflows.
 
-The entire stack runs inside a single Azure tenant — compute, storage, AI models and data pipelines. No external API calls, no third-party logging, no data leaving your private environment.
+The entire stack runs inside a single Azure tenant -compute, storage, AI models and data pipelines. No external API calls, no third-party logging, no data leaving your private environment.
 
 ![Chat Interface](assets/app-preview.png)
 
@@ -10,7 +10,11 @@ The entire stack runs inside a single Azure tenant — compute, storage, AI mode
 
 Users upload internal documents (PDF, Word, TXT) which get parsed, chunked and embedded through an Azure Databricks pipeline. The system then answers questions about those documents through a chat interface with real-time streaming, inline citations and full source traceability.
 
-Every answer includes numbered citation bubbles that link back to the exact source. Hovering a citation highlights the relevant text and shows a tooltip with the source document and page. Clicking opens an artifact panel with a document viewer scrolled to the cited passage.
+The entire infrastructure is provisioned through Terraform in a single `terraform apply` -Azure AI Foundry (three model deployments), Azure AI Search (hybrid index with vector + keyword + semantic ranking), Azure Databricks (ingestion pipeline), Azure PostgreSQL (auth, chat history, document metadata), Azure Blob Storage (document store), and Azure Document Intelligence (PDF/DOCX parsing). An interactive setup script handles everything from provisioning to environment configuration, database schema push, search index creation, and Databricks bundle deployment.
+
+The retrieval pipeline uses a custom query rewriter (GPT-5 Nano) that turns follow-up questions into standalone search queries and classifies conversational messages to skip retrieval entirely. Retrieved chunks pass through a two-stage funnel: hybrid search (vector + keyword + semantic) fetches 50 candidates, then an optional LLM-based reranker narrows to the top 10. Both the custom reranker and Azure's built-in semantic ranker can be independently toggled on or off, making it easy to benchmark different retrieval configurations.
+
+Every answer includes numbered citation bubbles that link back to the exact source. Hovering a citation highlights the relevant text and shows a tooltip with the source document and page. Clicking opens an inline artifact panel with the document viewer scrolled to the cited passage. Multi-tenant workspaces keep documents, search results and chat history scoped per organization.
 
 ![Citations](assets/citations.png)
 
@@ -60,15 +64,15 @@ flowchart TB
 - For high-volume production workloads, the pipeline can be replaced with Databricks Auto Loader for real-time streaming ingestion via Azure Event Grid
 
 **RAG Pipeline**
-- Smart query rewriting via GPT-5 Nano (with `reasoning_effort: low`) — rewrites follow-up questions into standalone retrieval queries using conversation history, while classifying conversational messages (greetings, thanks, small talk) to skip the RAG pipeline entirely for faster, more natural responses
+- Smart query rewriting via GPT-5 Nano (with `reasoning_effort: low`) -rewrites follow-up questions into standalone retrieval queries using conversation history, while classifying conversational messages (greetings, thanks, small talk) to skip the RAG pipeline entirely for faster, more natural responses
 - Document parsing via Azure Document Intelligence with layout analysis
-- Custom chunking strategies (see below) — no dependency on Azure's built-in indexer pipeline, giving you full control over chunk size, overlap and splitting logic
+- Custom chunking strategies (see below) -no dependency on Azure's built-in indexer pipeline, giving you full control over chunk size, overlap and splitting logic
 - Hybrid search combining vector, keyword and semantic ranking with RRF fusion
-- Two-stage retrieval funnel: fetches 50 candidates via hybrid search, reranks to the top 10, then passes only those to generation — configurable via `SEARCH_TOP_K` and `CONTEXT_TOP_K`
+- Two-stage retrieval funnel: fetches 50 candidates via hybrid search, reranks to the top 10, then passes only those to generation -configurable via `SEARCH_TOP_K` and `CONTEXT_TOP_K`
 - Optional LLM-based reranking via GPT-5 Nano (benchmarkable against Azure's built-in semantic ranker)
-- Per-query folder filtering — users can scope retrieval to specific folders or search across all folders, directly from the chat input
+- Per-query folder filtering -users can scope retrieval to specific folders or search across all folders, directly from the chat input
 - Answer generation strictly grounded in retrieved context to reduce hallucination
-- All blocking Azure SDK calls wrapped in `asyncio.to_thread()` — the ASGI event loop never blocks, keeping concurrent requests responsive
+- All blocking Azure SDK calls wrapped in `asyncio.to_thread()` -the ASGI event loop never blocks, keeping concurrent requests responsive
 
 **Chunking Strategies**
 
@@ -86,7 +90,7 @@ All strategies use `tiktoken` with `cl100k_base` encoding for token counting. To
 
 **Citation System**
 - Inline citation bubbles `[1]` `[2]` in every answer
-- Hover to highlight source text and preview the reference — the enclosing paragraph is also highlighted to show exactly which part of the answer the citation supports
+- Hover to highlight source text and preview the reference -the enclosing paragraph is also highlighted to show exactly which part of the answer the citation supports
 - Click to open an inline artifact panel (animated slide-in, pushes chat content aside) with a document viewer scrolled to the exact cited page
 
 **Streaming**
@@ -96,8 +100,8 @@ All strategies use `tiktoken` with `cl100k_base` encoding for token counting. To
 - Reasoning model support: chain-of-thought is streamed via dedicated `thinking`/`thinking_done` SSE events and displayed in an expandable reasoning trace above the answer
 
 **Document Management**
-- Upload PDF, Word and TXT files through the web UI — each upload triggers the Databricks ingestion pipeline automatically
-- Real-time processing status: the pipeline writes status updates back to PostgreSQL (`processing` → `indexed` / `failed`), and the UI auto-polls until all documents are ready — live spinner to green checkmark transition
+- Upload PDF, Word and TXT files through the web UI -each upload triggers the Databricks ingestion pipeline automatically
+- Real-time processing status: the pipeline writes status updates back to PostgreSQL (`processing` → `indexed` / `failed`), and the UI auto-polls until all documents are ready -live spinner to green checkmark transition
 - Delete a document and its blob, search index chunks and database records are all cleaned up in one operation
 
 **Multi-Tenant Workspaces**
@@ -135,7 +139,7 @@ All strategies use `tiktoken` with `cl100k_base` encoding for token counting. To
 
 ### Model Configuration
 
-This project uses [Direct from Azure](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure) models — third-party models hosted and managed by Microsoft on Azure infrastructure. Unlike marketplace models (which require separate vendor agreements and portal-based consent flows), Direct from Azure models are purchased through Azure, deployed via Terraform and covered by a single Microsoft license.
+This project uses [Direct from Azure](https://learn.microsoft.com/en-us/azure/ai-foundry/foundry-models/concepts/models-sold-directly-by-azure) models -third-party models hosted and managed by Microsoft on Azure infrastructure. Unlike marketplace models (which require separate vendor agreements and portal-based consent flows), Direct from Azure models are purchased through Azure, deployed via Terraform and covered by a single Microsoft license.
 
 The default chat model is **Mistral Large 3** (Mistral AI). You can swap it for any other Direct from Azure chat model by changing `chat_model_format` and `chat_model_name` in your `terraform.tfvars`:
 
@@ -158,7 +162,7 @@ chat_model_format = "OpenAI"
 chat_model_name   = "gpt-5.2-chat"
 ```
 
-Query rewriting uses **GPT-5 Nano** (OpenAI via Azure) with `reasoning_effort: low` for ultra-fast, low-latency inference. This lightweight model serves a dual purpose: it rewrites follow-up questions into standalone retrieval queries using conversation history, and it classifies user intent — detecting conversational messages (thanks, greetings, acknowledgements) so the RAG pipeline is skipped entirely. This avoids unnecessary embedding, search and reranking calls for non-retrieval messages, resulting in faster responses and more natural conversation flow.
+Query rewriting uses **GPT-5 Nano** (OpenAI via Azure) with `reasoning_effort: low` for ultra-fast, low-latency inference. This lightweight model serves a dual purpose: it rewrites follow-up questions into standalone retrieval queries using conversation history, and it classifies user intent -detecting conversational messages (thanks, greetings, acknowledgements) so the RAG pipeline is skipped entirely. This avoids unnecessary embedding, search and reranking calls for non-retrieval messages, resulting in faster responses and more natural conversation flow.
 
 Embeddings use **text-embedding-3-large** (OpenAI via Azure), which is also Direct from Azure.
 
@@ -198,7 +202,7 @@ After installing, log in to Azure:
 az login
 ```
 
-The Databricks CLI authenticates automatically through your Azure login — no separate configuration needed. The setup script reads the workspace URL from Terraform and uses your Azure credentials.
+The Databricks CLI authenticates automatically through your Azure login -no separate configuration needed. The setup script reads the workspace URL from Terraform and uses your Azure credentials.
 
 ### Setup
 
@@ -217,7 +221,7 @@ npm run dev
 
 The setup script handles everything: Terraform provisioning, `.env` file generation from Terraform outputs, database schema push, search index creation, Databricks secrets configuration and bundle deployment. It's idempotent and safe to re-run anytime.
 
-`npm run dev` automatically checks that the Azure CLI is logged in before starting. All Azure services authenticate via `DefaultAzureCredential` — no API keys or connection strings needed in your `.env` files. Locally, this uses your `az login` session; in production, it uses Azure Managed Identity.
+`npm run dev` automatically checks that the Azure CLI is logged in before starting. All Azure services authenticate via `DefaultAzureCredential` -no API keys or connection strings needed in your `.env` files. Locally, this uses your `az login` session; in production, it uses Azure Managed Identity.
 
 On first run, the script auto-generates a secure PostgreSQL password and stores it in `terraform/terraform.tfvars`. If you need the password later (e.g. for a database client), you can find it there.
 
@@ -227,8 +231,8 @@ The setup provisions paid Azure resources. The main cost driver is **Azure AI Se
 
 ```hcl
 # Semantic search tiers (set on the search service, separate from the SKU)
-# free     — 1,000 semantic queries/month (default)
-# standard — unlimited, billed per 1,000 queries
+# free     -1,000 semantic queries/month (default)
+# standard -unlimited, billed per 1,000 queries
 ```
 
 Other resources (PostgreSQL, Storage, AI Foundry, Databricks) also incur costs based on usage. Review the defaults in `terraform/terraform.tfvars` before running the setup script. Remember to tear down resources with `cd terraform && terraform destroy` when you're done to avoid ongoing charges.
@@ -243,7 +247,7 @@ The Azure PostgreSQL server is protected by a firewall. During setup, Terraform 
 [OK] PostgreSQL firewall: whitelisted your IP (203.0.113.42) for local development
 ```
 
-If your IP changes (e.g. switching networks), re-run `./scripts/setup.sh` — it will update the firewall rule automatically. You can also manage firewall rules manually in the Azure Portal under your PostgreSQL Flexible Server > Networking.
+If your IP changes (e.g. switching networks), re-run `./scripts/setup.sh` -it will update the firewall rule automatically. You can also manage firewall rules manually in the Azure Portal under your PostgreSQL Flexible Server > Networking.
 
 ## Deploying to Azure
 
@@ -262,9 +266,9 @@ This project is designed to run locally during development, with all backend ser
 
 **What already works:**
 
-- The `AllowAzureServices` PostgreSQL firewall rule already permits connections from App Service — no IP whitelisting needed in production
+- The `AllowAzureServices` PostgreSQL firewall rule already permits connections from App Service -no IP whitelisting needed in production
 - All other Azure services (AI Foundry, Search, Storage, Document Intelligence) are accessible from within the same tenant
-- No code changes required — the same Next.js and FastAPI apps run as-is on App Service
+- No code changes required -the same Next.js and FastAPI apps run as-is on App Service
 
 ## Security
 
@@ -273,10 +277,10 @@ Designed for enterprise environments where data privacy and compliance are non-n
 - All documents and queries stay within your private Azure tenant
 - Azure Databricks workspace runs inside your Azure subscription (not external SaaS)
 - No data sent to public AI services or external logging
-- RBAC with Azure Managed Identities via `DefaultAzureCredential` — zero API keys in code. Locally authenticates through `az login`, in production via Managed Identity. Terraform provisions all required role assignments automatically.
+- RBAC with Azure Managed Identities via `DefaultAzureCredential` -zero API keys in code. Locally authenticates through `az login`, in production via Managed Identity. Terraform provisions all required role assignments automatically.
 - Encryption at rest and in transit (TLS 1.2+)
 - Input validation on all API endpoints via Pydantic
-- On-demand document access via short-lived SAS tokens — no permanent public URLs. When viewing a cited document, the app generates a read-only Azure Blob Storage SAS URL scoped to that specific blob, valid for one hour. Expired tokens are never stored.
+- On-demand document access via short-lived SAS tokens -no permanent public URLs. When viewing a cited document, the app generates a read-only Azure Blob Storage SAS URL scoped to that specific blob, valid for one hour. Expired tokens are never stored.
 
 ## License
 
