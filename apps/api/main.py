@@ -1,5 +1,13 @@
+import logging
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
+_handler = logging.StreamHandler()
+for _name in ("routers", "services"):
+    _log = logging.getLogger(_name)
+    _log.setLevel(logging.INFO)
+    _log.addHandler(_handler)
 
 from config.settings import settings
 from routers import health, chat, documents

@@ -40,6 +40,7 @@ export function StreamingMessage({
               props as unknown as { "data-number": string }
             )["data-number"]
             const number = parseInt(dataNumber, 10)
+            if (isNaN(number)) return null
             const citation = citations.find((c) => c.number === number)
             return (
               <CitationBubble

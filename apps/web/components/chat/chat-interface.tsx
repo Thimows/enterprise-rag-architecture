@@ -105,7 +105,7 @@ export function ChatInterface({
     citations.length > 0 ? citations : initialCitations
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1 flex-col overflow-hidden">
       {showEmpty ? (
         <EmptyState />
       ) : (

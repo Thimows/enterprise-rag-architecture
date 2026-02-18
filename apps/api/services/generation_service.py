@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
+import time
 from typing import Generator
+
+logger = logging.getLogger(__name__)
 
 from azure.ai.inference.models import AssistantMessage, SystemMessage, UserMessage
 
@@ -15,7 +19,7 @@ SYSTEM_PROMPT = """You are a helpful assistant that answers questions based ONLY
 CRITICAL RULES:
 1. Only use information from the provided context chunks
 2. For every factual claim, include an inline citation: [1], [2], etc.
-3. If the context doesn't contain enough information, say so
+3. If the context is empty or doesn't contain relevant information, let the user know you couldn't find relevant documents. Suggest they upload documents through the Files page in the sidebar and try again. Do not include any citation references in this case.
 4. Never speculate or use external knowledge
 
 Format your response as markdown with inline citations [1][2] after every fact."""
@@ -67,14 +71,23 @@ def generate_answer_streaming(
     conversation_history: list[ConversationMessage],
 ) -> Generator[str, None, None]:
     """Generate an answer with streaming, yielding SSE-formatted events."""
+    t0 = time.perf_counter()
     client = get_chat_client()
     messages = build_messages(query, chunks, conversation_history)
+    t1 = time.perf_counter()
+    logger.info("[TIMING] build messages: %.2fs", t1 - t0)
 
     response = client.complete(messages=messages, stream=True)
+    t2 = time.perf_counter()
+    logger.info("[TIMING] client.complete() call: %.2fs", t2 - t1)
 
     full_text = ""
+    first_token = True
     for update in response:
         if update.choices and update.choices[0].delta and update.choices[0].delta.content:
+            if first_token:
+                logger.info("[TIMING] time to first token: %.2fs", time.perf_counter() - t2)
+                first_token = False
             content = update.choices[0].delta.content
             full_text += content
             event = json.dumps({"type": "chunk", "content": content})

@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { MessageBubble } from "@/components/chat/message-bubble"
 import { StreamingMessage } from "@/components/chat/streaming-message"
 import type { ChatMessage, Citation } from "@/lib/types"
@@ -23,15 +22,16 @@ export function MessageList({
   onCitationHover,
   onCitationClick,
 }: MessageListProps) {
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    const el = scrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [messages, streamingContent])
 
   return (
-    <ScrollArea className="flex-1">
-      <div className="mx-auto max-w-3xl px-4">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto">
+      <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-end px-4">
         {messages.map((msg, i) => (
           <MessageBubble key={i} message={msg}>
             {msg.role === "assistant" ? (
@@ -57,8 +57,7 @@ export function MessageList({
             />
           </MessageBubble>
         )}
-        <div ref={bottomRef} />
       </div>
-    </ScrollArea>
+    </div>
   )
 }
