@@ -1,6 +1,5 @@
 "use client"
 
-import { useEffect } from "react"
 import { ChevronsUpDown, Plus } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import {
@@ -19,13 +18,6 @@ import {
 export function WorkspaceSwitcher() {
   const { data: orgs } = authClient.useListOrganizations()
   const { data: activeOrg } = authClient.useActiveOrganization()
-
-  // Auto-select the first org when none is active (e.g. after sign-in)
-  useEffect(() => {
-    if (!activeOrg && orgs && orgs.length > 0) {
-      authClient.organization.setActive({ organizationId: orgs[0]!.id })
-    }
-  }, [activeOrg, orgs])
 
   return (
     <SidebarMenu>

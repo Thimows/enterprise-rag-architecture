@@ -134,10 +134,10 @@ export function DocumentTable({ documents, onDelete }: DocumentTableProps) {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem
-                    className="text-destructive focus:text-destructive"
+                    className="text-destructive focus:text-destructive focus:bg-destructive/10"
                     onClick={() => onDelete?.(doc)}
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 className="size-4 text-destructive" />
                     Delete
                   </DropdownMenuItem>
                 </DropdownMenuContent>

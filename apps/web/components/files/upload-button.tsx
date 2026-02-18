@@ -1,7 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { Upload } from "lucide-react"
+import { Upload, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { uploadDocument } from "@/lib/api-client"
 import { trpc } from "@/lib/trpc/client"
@@ -62,7 +62,7 @@ export function UploadButton({
         onClick={() => inputRef.current?.click()}
         disabled={uploading}
       >
-        <Upload className="size-4" />
+        {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
         {uploading ? "Uploading..." : "Upload"}
       </Button>
     </>
