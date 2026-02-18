@@ -37,7 +37,7 @@ def rewrite_query(
 
     client = get_rewrite_client()
 
-    recent = conversation_history[-(settings.MAX_HISTORY_TURNS * 2):]
+    recent = conversation_history[-settings.MAX_HISTORY_TURNS:]
     history_text = "\n".join(
         f"{msg.role}: {msg.content[:200]}" for msg in recent
     )
