@@ -36,7 +36,7 @@ export function WorkspaceSwitcher() {
               size="lg"
               className="data-[state=open]:bg-sidebar-accent"
             >
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg text-xs font-bold">
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-6 items-center justify-center rounded-full text-xs font-bold">
                 {activeOrg?.name?.charAt(0)?.toUpperCase() ?? "?"}
               </div>
               <div className="grid flex-1 text-left text-sm leading-tight">
@@ -58,7 +58,7 @@ export function WorkspaceSwitcher() {
                 onClick={() => authClient.organization.setActive({ organizationId: org.id })}
                 className="gap-2"
               >
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded text-xs font-bold">
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex size-6 items-center justify-center rounded-full text-xs font-bold">
                   {org.name.charAt(0).toUpperCase()}
                 </div>
                 <span className="truncate">{org.name}</span>

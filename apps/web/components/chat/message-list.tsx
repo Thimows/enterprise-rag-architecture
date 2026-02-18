@@ -36,7 +36,7 @@ export function MessageList({
 
   return (
     <div ref={scrollRef} className="flex-1 overflow-y-auto">
-      <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-end px-4">
+      <div className="mx-auto flex min-h-full max-w-3xl flex-col justify-end px-4 pb-6">
         {messages.map((msg, i) => (
           <MessageBubble key={i} message={msg}>
             {msg.role === "assistant" ? (

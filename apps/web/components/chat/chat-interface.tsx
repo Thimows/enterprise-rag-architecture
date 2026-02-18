@@ -26,7 +26,7 @@ export function ChatInterface({
   onFirstMessage,
 }: ChatInterfaceProps) {
   const chatIdRef = useRef(chatId)
-  chatIdRef.current = chatId
+  if (chatId) chatIdRef.current = chatId
 
   const addMessage = trpc.chat.addMessage.useMutation()
 

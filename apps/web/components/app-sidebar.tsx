@@ -26,7 +26,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 export function AppSidebar() {
   const { data: session } = useSession()
@@ -34,13 +33,6 @@ export function AppSidebar() {
   const { data: chats } = trpc.chat.list.useQuery(undefined, {
     refetchOnWindowFocus: false,
   })
-
-  const initials = session?.user?.name
-    ?.split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) ?? "?"
 
   return (
     <Sidebar>
@@ -76,10 +68,7 @@ export function AppSidebar() {
           <SidebarMenuItem className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton size="lg">
-                  <Avatar className="size-8">
-                    <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-                  </Avatar>
+                <SidebarMenuButton>
                   <span className="truncate text-sm font-medium">
                     {session?.user?.name ?? "User"}
                   </span>
