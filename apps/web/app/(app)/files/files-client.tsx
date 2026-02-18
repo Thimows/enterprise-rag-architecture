@@ -74,10 +74,10 @@ export function FilesClient({ organizationId }: { organizationId: string }) {
   }
 
   return (
-    <div className="flex flex-1 flex-col p-6">
+    <div className="flex flex-1 flex-col px-6">
       <div className="flex flex-1 gap-6">
         {/* Folder sidebar */}
-        <div className="w-64 shrink-0">
+        <div className="w-64 shrink-0 pt-6">
           <p className="mb-2 text-xs font-medium text-muted-foreground">
             Folders
           </p>
@@ -99,7 +99,7 @@ export function FilesClient({ organizationId }: { organizationId: string }) {
         <Separator orientation="vertical" className="h-auto" />
 
         {/* Documents area */}
-        <div className="flex-1">
+        <div className="flex-1 pt-6">
           {selectedFolder ? (
             <>
               <div className="mb-4 flex items-center justify-between">

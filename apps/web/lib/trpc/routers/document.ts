@@ -10,6 +10,19 @@ import {
   StorageSharedKeyCredential,
 } from "@azure/storage-blob"
 
+const CONTENT_TYPES: Record<string, string> = {
+  ".pdf": "application/pdf",
+  ".docx":
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".doc": "application/msword",
+  ".txt": "text/plain",
+}
+
+function getContentType(path: string): string {
+  const ext = path.slice(path.lastIndexOf(".")).toLowerCase()
+  return CONTENT_TYPES[ext] ?? "application/octet-stream"
+}
+
 function generateSasUrl(blobPath: string): string {
   const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING
   const containerName =
@@ -50,7 +63,7 @@ function generateSasUrl(blobPath: string): string {
       startsOn,
       expiresOn,
       contentDisposition: "inline",
-      contentType: "application/pdf",
+      contentType: getContentType(blobPath),
     },
     credential,
   ).toString()

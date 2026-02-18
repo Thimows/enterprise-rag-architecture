@@ -83,7 +83,7 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
+    --background: oklch(0.17 0 0);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.205 0 0);
     --card-foreground: oklch(0.985 0 0);
@@ -125,11 +125,22 @@
     }
 }
 
-/* Highlight the block containing a hovered citation bubble */
+/* Smooth fade for citation highlight on block parents */
+.text-sm p,
+.text-sm li,
+.text-sm blockquote,
+.text-sm h1,
+.text-sm h2,
+.text-sm h3,
+.text-sm h4,
+.text-sm h5,
+.text-sm h6 {
+  transition: background-color 200ms ease;
+  border-radius: var(--radius-sm);
+}
+
 .citation-highlight {
   background-color: oklch(0.65 0.2 260 / 10%);
-  border-radius: var(--radius-sm);
-  transition: background-color 150ms;
 }
 .dark .citation-highlight {
   background-color: oklch(0.65 0.2 260 / 15%);
