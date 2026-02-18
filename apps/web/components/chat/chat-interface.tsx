@@ -25,6 +25,12 @@ export function ChatInterface({
   const chatIdRef = useRef(chatId)
   if (chatId) chatIdRef.current = chatId
 
+  const [selectedFolderIds, setSelectedFolderIds] = useState<string[]>([])
+
+  const { data: folders } = trpc.folder.list.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  })
+
   const addMessage = trpc.chat.addMessage.useMutation()
 
   const handleUserMessage = useCallback(
@@ -71,6 +77,7 @@ export function ChatInterface({
     stop,
   } = useStreamingChat({
     organizationId,
+    folderIds: selectedFolderIds.length > 0 ? selectedFolderIds : undefined,
     onUserMessage: handleUserMessage,
     onAssistantComplete: handleAssistantComplete,
   })
@@ -111,6 +118,9 @@ export function ChatInterface({
         onSend={handleSend}
         onStop={stop}
         isStreaming={isStreaming}
+        folders={folders}
+        selectedFolderIds={selectedFolderIds}
+        onFolderChange={setSelectedFolderIds}
       />
       <ArtifactPanel
         citation={selectedCitation}

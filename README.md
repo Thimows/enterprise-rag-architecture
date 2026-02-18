@@ -54,6 +54,7 @@ Every answer includes numbered citation bubbles that link back to the exact sour
 - Custom chunking strategies (see below) — no dependency on Azure's built-in indexer pipeline, giving you full control over chunk size, overlap and splitting logic
 - Hybrid search combining vector, keyword and semantic ranking with RRF fusion
 - Optional LLM-based reranking via GPT-5 Nano (benchmarkable against Azure's built-in semantic ranker)
+- Per-query folder filtering — users can scope retrieval to specific folders or search across all folders, directly from the chat input
 - Answer generation strictly grounded in retrieved context to reduce hallucination
 
 **Chunking Strategies**

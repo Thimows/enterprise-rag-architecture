@@ -6,12 +6,14 @@ import type { ChatMessage, Citation } from "@/lib/types"
 
 interface UseStreamingChatOptions {
   organizationId: string
+  folderIds?: string[]
   onUserMessage?: (content: string) => void
   onAssistantComplete?: (content: string, citations: Citation[]) => void
 }
 
 export function useStreamingChat({
   organizationId,
+  folderIds,
   onUserMessage,
   onAssistantComplete,
 }: UseStreamingChatOptions) {
@@ -51,6 +53,7 @@ export function useStreamingChat({
             organization_id: organizationId,
             query,
             conversation_history: messages,
+            ...(folderIds?.length && { filters: { folder_ids: folderIds } }),
           },
           controller.signal,
         )) {
@@ -103,7 +106,7 @@ export function useStreamingChat({
         abortRef.current = null
       }
     },
-    [messages, isStreaming, organizationId, onUserMessage, onAssistantComplete],
+    [messages, isStreaming, organizationId, folderIds, onUserMessage, onAssistantComplete],
   )
 
   const stop = useCallback(() => {
