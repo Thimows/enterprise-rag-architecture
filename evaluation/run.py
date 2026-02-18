@@ -17,8 +17,6 @@ The script reads Azure credentials from apps/api/.env (AZURE_AI_RESOURCE_NAME,
 AZURE_AI_CHAT_DEPLOYMENT) and authenticates via DefaultAzureCredential (az login).
 """
 
-from __future__ import annotations
-
 import argparse
 import json
 import sys

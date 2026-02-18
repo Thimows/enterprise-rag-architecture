@@ -1,7 +1,7 @@
 [project]
 name = "rag-evaluation"
 version = "0.1.0"
-requires-python = ">=3.9"
+requires-python = ">=3.12"
 dependencies = [
     "requests>=2.31",
     "azure-ai-inference>=1.0.0b9",

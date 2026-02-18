@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import logging
 
 from azure.ai.inference.models import SystemMessage, UserMessage

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from azure.search.documents.models import VectorizedQuery, QueryType
 
 from config.settings import settings

@@ -139,7 +139,7 @@ With few documents, hybrid search alone is accurate enough - the semantic ranker
 |-------|-----------|
 | Frontend | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, Vercel Streamdown, tRPC v11, TanStack Query v5, shadcn/ui |
 | Auth & DB | BetterAuth (organization plugin), Drizzle ORM, Azure PostgreSQL |
-| Backend | FastAPI, Python 3.9+, Pydantic |
+| Backend | FastAPI, Python 3.14, Pydantic |
 | AI Services | Azure AI Foundry (Mistral Large 3, GPT-5 Nano, text-embedding-3-large), Azure AI Search, Azure Document Intelligence |
 | Ingestion | Azure Databricks (premium tier), Databricks Asset Bundles, semantic chunking |
 | Infrastructure | Terraform (all Azure resources incl. Databricks workspace), Azure Storage Account |

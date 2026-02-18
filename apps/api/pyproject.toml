@@ -3,7 +3,7 @@ name = "api"
 version = "0.1.0"
 description = "Azure RAG Architecture — FastAPI backend"
 readme = "README.md"
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.12"
 dependencies = [
     "fastapi[standard]>=0.128.8",
     "azure-ai-inference>=1.0.0b6",
