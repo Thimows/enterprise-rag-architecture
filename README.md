@@ -153,7 +153,7 @@ With few documents, hybrid search alone is accurate enough - the semantic ranker
 | Auth & DB | BetterAuth (organization plugin), Drizzle ORM, Azure PostgreSQL |
 | Backend | FastAPI, Python 3.14, Pydantic |
 | AI Services | Azure AI Foundry (Mistral Large 3, GPT-5 Nano, text-embedding-3-large), Azure AI Search, Azure Document Intelligence |
-| Ingestion | Azure Databricks (premium tier), Databricks Asset Bundles, semantic chunking |
+| Ingestion | Azure Databricks, Databricks Asset Bundles, semantic chunking |
 | Infrastructure | Terraform (all Azure resources incl. Databricks workspace), Azure Storage Account |
 | Monorepo | Turborepo, npm workspaces, shared ESLint and TypeScript configs |
 
@@ -255,7 +255,11 @@ The setup provisions paid Azure resources. The main cost driver is **Azure AI Se
 # standard -unlimited, billed per 1,000 queries
 ```
 
-Other resources (PostgreSQL, Storage, AI Foundry, Databricks) also incur costs based on usage. Review the defaults in `terraform/terraform.tfvars` before running the setup script. Remember to tear down resources with `cd terraform && terraform destroy` when you're done to avoid ongoing charges.
+**Azure PostgreSQL** defaults to the Burstable `B_Standard_B1ms` tier (1 vCore, 2 GiB RAM, ~$12/month). This is sufficient for development and light usage but should be upgraded to General Purpose SKU for production workloads.
+
+**Azure Databricks** is usage-based (pay per DBU). You only pay when the ingestion pipeline runs. If nobody uploads documents, Databricks costs nothing.
+
+Other resources (Storage, AI Foundry) also incur costs based on usage. Review the defaults in `terraform/terraform.tfvars` before running the setup script. Remember to tear down resources with `cd terraform && terraform destroy` when you're done to avoid ongoing charges.
 
 The FastAPI server starts at `http://localhost:4001` and the Next.js app at `http://localhost:4000`.
 
@@ -289,6 +293,10 @@ This project is designed to run locally during development, with all backend ser
 - The `AllowAzureServices` PostgreSQL firewall rule already permits connections from App Service -no IP whitelisting needed in production
 - All other Azure services (AI Foundry, Search, Storage, Document Intelligence) are accessible from within the same tenant
 - No code changes required -the same Next.js and FastAPI apps run as-is on App Service
+
+**Upgrade PostgreSQL tier:**
+
+The default Burstable `B_Standard_B1ms` (1 vCore, 2 GiB RAM) is intended for development. For production, upgrade to a General Purpose SKU in `terraform/terraform.tfvars`. The right size depends on your expected concurrent users and query volume.
 
 **Increase model rate limits:**
 
